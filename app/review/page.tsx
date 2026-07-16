@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { confirmAndSubmit } from "@/app/actions";
 import { ItemsCheckboxes } from "@/components/items-checkboxes";
-import { parseItems } from "@/lib/claim-facts";
-import { draftMissing, loadDraft } from "@/lib/claims";
-import { readSessionKey } from "@/lib/session";
+import { draftFromCookieValue, draftMissing } from "@/lib/claims";
+import { readDraftCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +35,9 @@ function Field({
 }
 
 export default async function Review() {
-  const sessionKey = await readSessionKey();
-  const draft = sessionKey ? await loadDraft(sessionKey) : null;
+  const draft = draftFromCookieValue(await readDraftCookie());
   if (!draft) redirect("/");
-  if (draft.claimId) redirect("/done");
+  if (draft.submittedClaimId) redirect("/done");
   if (draftMissing(draft).length > 0) redirect("/gaps");
 
   return (
@@ -87,7 +85,7 @@ export default async function Review() {
           />
         </Field>
         <Field label="What was damaged">
-          <ItemsCheckboxes selected={parseItems(draft.itemsDamaged)} />
+          <ItemsCheckboxes selected={draft.itemsDamaged} />
         </Field>
         <Field label="Phone">
           <input

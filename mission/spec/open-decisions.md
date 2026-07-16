@@ -104,6 +104,21 @@ B12. **Vercel deploy: seed at build, copy SQLite to /tmp at cold start.**
   (the flow degrades to the front door, never a dead-end). A hosted database
   would be a stack deviation needing an Architect decision — declined for a
   validation artifact.
+B13. **Draft state moved from a ClaimDraft row to the httpOnly demo cookie —
+  amends the realization of A6.** Deploying to Vercel proved (by an e2e probe
+  against production) that per-invocation `/tmp` SQLite cannot carry state
+  across requests: a draft written by one request was invisible to the next,
+  every time. The draft now travels as base64url JSON in the httpOnly cookie
+  (`lib/session.ts` + `lib/claims.ts`); string fields are clipped to keep the
+  cookie small. What A6 was *for* is preserved: the draft still survives
+  reloads and a dying battery, still carries no identity, and enforces
+  nothing; extraction, gap-derivation, and submit validation remain fully
+  server-side ([AC-8]). The demo Claim row is still written at submit
+  ([AC-6]) — on serverless it is a write-only record, and `/done` renders
+  from the submitted cookie snapshot, so the confirmation never depends on a
+  cross-instance read. The ClaimDraft table is removed from the schema;
+  B3–B5's session-key/`optionalsOffered`/idempotent-submit semantics carry
+  over unchanged, now keyed by the cookie itself.
 
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 

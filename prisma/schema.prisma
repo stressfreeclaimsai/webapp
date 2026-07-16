@@ -8,10 +8,9 @@
 // the intake captured (name/address/phone/email as typed), so a demo claim
 // is self-contained and readable without joins.
 //
-// ClaimDraft: in-progress state between screens, keyed by the opaque
-// demo-session cookie (architecture §2 — not auth: no identity, enforces
-// nothing). Holds only the extracted structured facts, never the raw
-// utterance (architecture §9).
+// In-progress drafts do NOT live here: they travel in the httpOnly demo
+// cookie (decision B13 — serverless instances don't share a SQLite file),
+// and never include the raw utterance (architecture §9).
 //
 // Items damaged is a comma-separated string from the fixed set
 // (roof/siding/window/drywall/contents) — SQLite has no array or enum type;
@@ -64,28 +63,3 @@ model Claim {
   createdAt DateTime @default(now())
 }
 
-model ClaimDraft {
-  id         String @id @default(cuid())
-  sessionKey String @unique // opaque demo-session cookie value — not auth
-
-  fullName        String?
-  propertyAddress String?
-  dateOfLoss      DateTime?
-  insurerName     String?
-  itemsDamaged    String    @default("") // comma-separated, from the fixed set
-  phone           String?
-  email           String?
-  policyNumber    String?
-  deductible      String?
-
-  // The one optional-extras step (policy number / deductible) is offered once,
-  // then never blocks or re-asks (spec AC-3).
-  optionalsOffered Boolean @default(false)
-
-  // Set on submit — makes submitClaim idempotent per session (a reload of the
-  // confirmation never files a second demo claim).
-  claimId String? @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}

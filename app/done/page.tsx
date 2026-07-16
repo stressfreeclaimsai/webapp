@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ITEM_LABELS, parseItems } from "@/lib/claim-facts";
-import { draftMissing, loadDraft, loadSubmittedClaim } from "@/lib/claims";
-import { readSessionKey } from "@/lib/session";
+import { ITEM_LABELS } from "@/lib/claim-facts";
+import { draftFromCookieValue, draftMissing } from "@/lib/claims";
+import { readDraftCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,10 @@ export const dynamic = "force-dynamic";
  * NON-FUNCTIONAL three-beat preview of the promise — we file, we handle the
  * inspection, an approved contractor repairs. Nothing is scheduled, sent, or
  * contracted; nothing leaves the app. No fee language anywhere (settled Won't).
+ *
+ * Renders from the submitted cookie snapshot (B13): the demo Claim row was
+ * written by submitClaim, but on serverless hosting a cross-request DB read
+ * is not dependable, and the confirmation must never be.
  */
 
 const NEXT_STEPS = (insurer: string) => [
@@ -32,11 +36,10 @@ const NEXT_STEPS = (insurer: string) => [
 const dateLong = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
 
 export default async function Done() {
-  const sessionKey = await readSessionKey();
-  const draft = sessionKey ? await loadDraft(sessionKey) : null;
+  const draft = draftFromCookieValue(await readDraftCookie());
 
   // No draft at all — a calm, directional state, never a dead-end (AC-8).
-  if (!sessionKey || !draft) {
+  if (!draft) {
     return (
       <section className="pt-2 sm:pt-6">
         <h1 className="text-balance font-display text-display">Nothing here yet.</h1>
@@ -55,25 +58,22 @@ export default async function Done() {
 
   // An unsubmitted draft lands back on the step that needs it — the submit
   // itself is server-authoritative, so skipping ahead can't file anything.
-  if (!draft.claimId) redirect(draftMissing(draft).length > 0 ? "/gaps" : "/review");
+  if (!draft.submittedClaimId) redirect(draftMissing(draft).length > 0 ? "/gaps" : "/review");
 
-  const claim = await loadSubmittedClaim(sessionKey);
-  if (!claim) redirect("/");
-
-  const firstName = claim.claimantName.trim().split(/\s+/)[0];
-  const reference = `SFC-${claim.id.slice(-6).toUpperCase()}`;
-  const items = parseItems(claim.itemsDamaged).map((item) => ITEM_LABELS[item]);
+  const firstName = draft.fullName!.trim().split(/\s+/)[0];
+  const reference = `SFC-${draft.submittedClaimId!.slice(-6).toUpperCase()}`;
+  const items = draft.itemsDamaged.map((item) => ITEM_LABELS[item]);
 
   const summary: Array<[string, string]> = [
-    ["Name", claim.claimantName],
-    ["Property", claim.propertyAddress],
-    ["Date of loss", dateLong.format(claim.dateOfLoss)],
-    ["Insurance company", claim.insurerName],
+    ["Name", draft.fullName!],
+    ["Property", draft.propertyAddress!],
+    ["Date of loss", dateLong.format(draft.dateOfLoss!)],
+    ["Insurance company", draft.insurerName!],
     ["Damaged", items.join(", ")],
-    ["Phone", claim.phone],
-    ["Email", claim.email],
-    ...(claim.policyNumber ? ([["Policy number", claim.policyNumber]] as [string, string][]) : []),
-    ...(claim.deductible ? ([["Deductible", claim.deductible]] as [string, string][]) : []),
+    ["Phone", draft.phone!],
+    ["Email", draft.email!],
+    ...(draft.policyNumber ? ([["Policy number", draft.policyNumber]] as [string, string][]) : []),
+    ...(draft.deductible ? ([["Deductible", draft.deductible]] as [string, string][]) : []),
   ];
 
   return (
@@ -113,7 +113,7 @@ export default async function Done() {
       {/* The concierge promise — a non-functional preview, nothing more. */}
       <h2 className="mt-10 text-eyebrow font-semibold uppercase text-accent">What happens next</h2>
       <ol className="mt-4 grid gap-0">
-        {NEXT_STEPS(claim.insurerName).map((step, i) => (
+        {NEXT_STEPS(draft.insurerName!).map((step, i) => (
           <li key={step.title} className="relative flex gap-4 pb-8 last:pb-0">
             {i < 2 && (
               <span
@@ -134,7 +134,7 @@ export default async function Done() {
 
       <p className="mt-8 border-t border-border pt-5 leading-relaxed text-muted">
         You don&rsquo;t need to do anything else right now. We&rsquo;ll keep you posted at{" "}
-        <span className="font-medium text-ink">{claim.email}</span>.
+        <span className="font-medium text-ink">{draft.email}</span>.
       </p>
       <p className="mt-4 text-sm text-muted">
         <Link href="/" className="text-accent underline-offset-4 hover:underline">

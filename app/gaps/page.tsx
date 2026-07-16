@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { answerGap, saveOptionals } from "@/app/actions";
 import { ItemsCheckboxes } from "@/components/items-checkboxes";
-import { parseItems, REQUIRED_FIELDS, type RequiredField } from "@/lib/claim-facts";
-import { draftMissing, loadDraft } from "@/lib/claims";
-import { readSessionKey } from "@/lib/session";
-import type { ClaimDraft } from "@prisma/client";
+import { REQUIRED_FIELDS, type RequiredField } from "@/lib/claim-facts";
+import { draftFromCookieValue, draftMissing, type ClaimDraftState } from "@/lib/claims";
+import { readDraftCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -34,12 +33,12 @@ const QUESTIONS: Record<RequiredField, { title: string; help: string }> = {
   email: { title: "And your email?", help: "We'll send a copy of everything we do." },
 };
 
-function inputFor(field: RequiredField, draft: ClaimDraft) {
+function inputFor(field: RequiredField, draft: ClaimDraftState) {
   const base =
     "w-full rounded-card border border-border bg-surface-raised p-4 leading-relaxed shadow-sm";
   switch (field) {
     case "itemsDamaged":
-      return <ItemsCheckboxes selected={parseItems(draft.itemsDamaged)} />;
+      return <ItemsCheckboxes selected={draft.itemsDamaged} />;
     case "dateOfLoss":
       return (
         <input
@@ -70,7 +69,7 @@ function inputFor(field: RequiredField, draft: ClaimDraft) {
   }
 }
 
-function OptionalStep({ draft }: { draft: ClaimDraft }) {
+function OptionalStep({ draft }: { draft: ClaimDraftState }) {
   const base =
     "w-full rounded-card border border-border bg-surface-raised p-4 leading-relaxed shadow-sm";
   return (
@@ -130,10 +129,9 @@ function OptionalStep({ draft }: { draft: ClaimDraft }) {
 }
 
 export default async function Gaps() {
-  const sessionKey = await readSessionKey();
-  const draft = sessionKey ? await loadDraft(sessionKey) : null;
+  const draft = draftFromCookieValue(await readDraftCookie());
   if (!draft) redirect("/");
-  if (draft.claimId) redirect("/done");
+  if (draft.submittedClaimId) redirect("/done");
 
   const missing = draftMissing(draft);
   if (missing.length === 0 && draft.optionalsOffered) redirect("/review");
