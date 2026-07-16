@@ -1,13 +1,21 @@
 // ============================================================================
-// EXAMPLE schema — replace the entities per project.
+// StressFreeClaim.ai — intake slice (see mission/architecture.md §4).
 //
-// What is NOT example, and should stay: a single `User` row is the seeded demo
-// user the prototype runs as (constitution §2). There is no auth and no second
-// user — the User table exists only to anchor seeded data, and is loaded
-// implicitly by the app (never selected through UI).
+// Homeowner: the single seeded demo user (Martin Kaczmarek). No auth — the
+// row anchors seeded data and is loaded implicitly, never selected via UI.
 //
-// `Note` is the swappable example entity that proves the one-to-many,
-// seed-driven pattern. Replace it with your project's real entities.
+// Claim: created by the intake on submit. Carries a snapshot of everything
+// the intake captured (name/address/phone/email as typed), so a demo claim
+// is self-contained and readable without joins.
+//
+// ClaimDraft: in-progress state between screens, keyed by the opaque
+// demo-session cookie (architecture §2 — not auth: no identity, enforces
+// nothing). Holds only the extracted structured facts, never the raw
+// utterance (architecture §9).
+//
+// Items damaged is a comma-separated string from the fixed set
+// (roof/siding/window/drywall/contents) — SQLite has no array or enum type;
+// lib/claim-facts.ts owns the canonical list and validation.
 // ============================================================================
 
 datasource db {
@@ -19,22 +27,65 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  notes     Note[]
+model Homeowner {
+  id            String  @id @default(cuid())
+  firstName     String
+  lastName      String
+  streetAddress String
+  city          String
+  state         String
+  zip           String
+  phone         String
+  email         String
+  claims        Claim[]
+
   createdAt DateTime @default(now())
 }
 
-model Note {
-  id        String   @id @default(cuid())
-  title     String
-  body      String
-  tags      String   @default("") // comma-separated; SQLite has no array type
-  pinned    Boolean  @default(false)
+model Claim {
+  id String @id @default(cuid())
+
+  // Snapshot of the intake — exactly what the homeowner confirmed at Review.
+  claimantName    String
+  propertyAddress String
+  phone           String
+  email           String
+
+  insurerName  String
+  policyNumber String? // optional, never blocks (spec AC-3)
+  deductible   String? // optional, captured only — never handled
+  dateOfLoss   DateTime
+  itemsDamaged String // comma-separated, from the fixed set
+  notes        String  @default("")
+
+  homeowner   Homeowner @relation(fields: [homeownerId], references: [id], onDelete: Cascade)
+  homeownerId String
+
+  createdAt DateTime @default(now())
+}
+
+model ClaimDraft {
+  id         String @id @default(cuid())
+  sessionKey String @unique // opaque demo-session cookie value — not auth
+
+  fullName        String?
+  propertyAddress String?
+  dateOfLoss      DateTime?
+  insurerName     String?
+  itemsDamaged    String    @default("") // comma-separated, from the fixed set
+  phone           String?
+  email           String?
+  policyNumber    String?
+  deductible      String?
+
+  // The one optional-extras step (policy number / deductible) is offered once,
+  // then never blocks or re-asks (spec AC-3).
+  optionalsOffered Boolean @default(false)
+
+  // Set on submit — makes submitClaim idempotent per session (a reload of the
+  // confirmation never files a second demo claim).
+  claimId String? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId String
 }

@@ -1,10 +1,14 @@
-# Foundry — Default Archetype
+# StressFreeClaim.ai — prototype
 
-The default archetype template for the Foundry prototype engine. It scaffolds a
-single-user, customer-testable web **prototype** (not a product) from a spec pack.
+A homeowner, right after a hurricane, tells the app what happened in one
+sentence — and trusts that someone will take the claim from there. Built on the
+Foundry default archetype: a single-user, customer-testable web **prototype**
+(not a product). The core loop: one utterance → gap-filling (one question at a
+time) → review & correct → confirmation + a non-functional concierge preview.
 
 Read [`constitution.md`](./constitution.md) (the non-negotiables) and
-[`CLAUDE.md`](./CLAUDE.md) (workflow) first.
+[`CLAUDE.md`](./CLAUDE.md) (workflow) first; the spec pack in
+[`mission/spec/`](./mission/spec/) is the source of truth.
 
 ## Stack (locked — constitution §3)
 
@@ -48,7 +52,10 @@ npm run dev                      # http://localhost:3000
 ## Per-project customization
 
 - **Design identity** lives entirely in the `@theme` block of
-  [`app/globals.css`](./app/globals.css) — swap the tokens to re-skin. The shipped
-  values are a labelled placeholder (replaced by the design-tokens skill).
-- **Example entity** (`User` + `Note`) in [`prisma/schema.prisma`](./prisma/schema.prisma)
-  is marked to be replaced with the project's real entities.
+  [`app/globals.css`](./app/globals.css) — swap the tokens to re-skin. The current
+  values are derived from `mission/spec/look-and-feel.md` (calm · reassuring ·
+  effortless · plain-spoken).
+- **Entities** (`Homeowner`, `Claim`, `ClaimDraft`) in
+  [`prisma/schema.prisma`](./prisma/schema.prisma) follow
+  `mission/spec/data-model-hints.md`; extraction and gap-derivation contracts
+  live in [`lib/claim-facts.ts`](./lib/claim-facts.ts).

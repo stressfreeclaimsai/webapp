@@ -43,6 +43,68 @@ A9. **New build-slice criterion [AC-8]** added (server-authoritative extraction/
 
 ---
 
+## Builder decisions (G2 build, 2026-07-15)
+
+Residual technical ambiguity resolved against archetype defaults while
+implementing WP-1–WP-7. Scope, track, and the architect's calls unchanged.
+
+B1. **Items damaged is a comma-separated string column, not a Prisma enum** —
+  Prisma has no enums or arrays on SQLite. `lib/claim-facts.ts` owns the
+  canonical five-value set; unknown values are dropped on parse and never
+  invented (AC-4 enforced in code, not the schema).
+B2. **The intake snapshot lives on the Claim** (`claimantName`,
+  `propertyAddress`, `phone`, `email`), linked to the seeded Homeowner rather
+  than overwriting the Homeowner's fields on submit. *Why: a demo claim stays
+  self-contained and readable without joins, and repeated demo runs with
+  different names can't cross-contaminate the one seeded homeowner.*
+B3. **Each new utterance mints a fresh demo-session key** — "start another
+  claim" is just returning to `/`; abandoned drafts are orphaned throwaway
+  rows, reconstructable-from-nothing by design.
+B4. **Submit fires from the Review action, and `submitClaim` is idempotent per
+  session** (the draft records its `claimId`). The architecture's "on arrival
+  at `/done`, call submitClaim()" is realized as: Review's confirm action
+  submits, `/done` reads the stored claim back. *Why: a reload of the
+  confirmation — likely on a flaky connection — must never file a second demo
+  claim.* Server-side re-validation is unchanged (AC-8).
+B5. **Optional extras are one skippable step after the required gaps**, tracked
+  by a `optionalsOffered` flag so policy number / deductible are offered
+  exactly once and can never block or re-ask (AC-3).
+B6. **Date handling:** all dates anchor to UTC noon so the calendar date never
+  shifts across timezones; a year-less date ("September 15th") resolves to its
+  most recent past occurrence; an absolute date outranks a relative word when
+  both appear ("yesterday, September 15th" → September 15).
+B7. **Phone and email are also extracted from the utterance when present.**
+  The spec's extraction list is the five ball-rolling facts, but AC-3's "asks
+  only for what's missing" wins: if the sentence already contains a phone or
+  email, re-asking would violate the minimal-follow-ups promise.
+B8. **Identity derived from the adjectives** (calm · reassuring · effortless ·
+  plain-spoken): warm paper neutrals + one deep sea-green accent (neither
+  insurance-corporate cold nor roofer-orange nor AI-default purple); Fraunces
+  display over Public Sans body. All in the `@theme` token block; no ad-hoc
+  values elsewhere.
+B9. **Playwright runs serial (`workers: 1`)** — the acceptance flows share one
+  throwaway SQLite file and one dev server; parallel workers invite lock
+  contention, not speed.
+B10. **AC-4/AC-8 server contracts are asserted through the UI**, not by
+  importing `lib/` into tests — the Playwright/Node 24 sync-ESM-loader bug
+  (below) forbids local TS imports in test files. Skipping ahead to `/done` or
+  `/review` mid-flow routes back to `/gaps`, proving the server-side guards.
+B11. **WP-7 (should-tier) shipped:** warmth in the assistant copy, a
+  screenshot-able claim summary with an `SFC-` reference on `/done`, and a
+  non-interactive voice signpost on `/` ("Voice is on the way — typing works
+  today") that cannot be mistaken for working speech.
+B12. **Vercel deploy: seed at build, copy SQLite to /tmp at cold start.**
+  Vercel's serverless filesystem is read-only and ephemeral, but the flow
+  writes on every step. `vercel-build` seeds `prisma/dev.db` during build, the
+  file is bundled into every route's function (`outputFileTracingIncludes`),
+  and `lib/db.ts` copies it to `/tmp` on cold start when `VERCEL` is set —
+  locally inert. *Trade-off accepted:* `/tmp` is per-instance, so demo data
+  resets on cold starts and a mid-flow draft can vanish if traffic hops
+  instances — acceptable for a single-demo-user walkthrough of throwaway data
+  (the flow degrades to the front door, never a dead-end). A hosted database
+  would be a stack deviation needing an Architect decision — declined for a
+  validation artifact.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.

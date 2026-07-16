@@ -6,7 +6,10 @@ import { defineConfig, devices } from "@playwright/test";
 // pass/fail table keyed to acceptance criteria.
 export default defineConfig({
   testDir: "./tests",
-  fullyParallel: true,
+  // Serial on purpose: the acceptance flows share one throwaway SQLite file
+  // and a dev server; parallel workers invite lock contention, not speed.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: [["list"], ["json", { outputFile: "test-results/results.json" }]],

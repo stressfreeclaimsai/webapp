@@ -1,36 +1,39 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * PLACEHOLDER identity — replaced per project by the design-tokens skill.
+ * StressFreeClaim.ai identity — derived from look-and-feel.md, not invented.
  *
- * The ENTIRE visual identity of the prototype lives in this @theme block:
- * color, type, radii. Every component consumes these as Tailwind utilities
- * (bg-surface, text-ink, text-accent, border-border, rounded-card, …).
+ * Adjectives: calm · reassuring · effortless · plain-spoken. The person
+ * opening this just went through a hurricane; it should feel like a steady,
+ * competent hand — a concierge, not a form and not a sales pitch.
  *
- * RULE: there must be NO hard-coded hex colors and NO font-family names
- * anywhere else in the codebase. To re-skin the whole prototype, swap the
- * values in this block — nothing else should need to change.
+ *  - Color: warm paper neutrals (nothing insurance-corporate cold) with one
+ *    deep, settled sea-green accent (steady, restorative — and pointedly not
+ *    roofer-orange or AI-default purple).
+ *  - Type: Fraunces for display (warm, human, unhurried) over Public Sans
+ *    for everything else (designed for plain-spoken public communication).
  *
- * The values below are an intentionally neutral, warm placeholder. Do not
- * invest in making them distinctive here; the per-project palette and type
- * pairing are generated later by the design-tokens skill.
+ * RULE (constitution §6): the ENTIRE visual identity lives in this @theme
+ * block. No hard-coded hex colors and no font-family names anywhere else.
  * ========================================================================== */
 @theme {
   /* — Color ———————————————————————————————————————————————— */
-  --color-surface: #faf9f7; /* page background */
-  --color-surface-raised: #ffffff; /* cards, panels */
-  --color-ink: #1c1917; /* primary text */
-  --color-muted: #6f6a64; /* secondary text */
-  --color-border: #e7e3dd; /* hairlines, dividers */
-  --color-accent: #b4502a; /* single brand accent */
+  --color-surface: #f7f5f0; /* warm paper — page background */
+  --color-surface-raised: #fffefa; /* cards, panels, inputs */
+  --color-ink: #26241e; /* primary text — warm near-black */
+  --color-muted: #6c675c; /* secondary text */
+  --color-border: #e4dfd4; /* hairlines, dividers */
+  --color-accent: #2e6b5e; /* deep sea-green — the steady hand */
   --color-accent-ink: #ffffff; /* text/icons on accent */
+  --color-accent-soft: #e9f1ec; /* quiet tinted panels */
 
   /* — Type —————————————————————————————————————————————————— */
-  /* --font-manrope is injected by next/font in app/layout.tsx */
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --text-display: 2.5rem;
-  --text-display--line-height: 1.1;
-  --text-display--font-weight: 700;
+  /* Font variables are injected by next/font in app/layout.tsx */
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --text-display: 2.125rem;
+  --text-display--line-height: 1.18;
+  --text-display--font-weight: 550;
   --text-eyebrow: 0.8125rem;
   --text-eyebrow--line-height: 1.2;
   --text-eyebrow--letter-spacing: 0.08em;

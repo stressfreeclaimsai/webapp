@@ -16,7 +16,14 @@ import { ensureDatabaseUrl } from "./env";
 // TODO(phase-0): auto-discover acceptance criteria by parsing /mission/spec/spec.md
 // instead of maintaining this registry by hand.
 const ACCEPTANCE_CRITERIA: Record<string, string> = {
-  "AC-1": "Home route renders the seeded demo user's notes with no console/network errors",
+  "AC-1": "Welcome & start — greeting and a single clear way to begin",
+  "AC-2": "Natural-language capture — one utterance extracts the ball-rolling facts",
+  "AC-3": "Gap-filling asks only what's missing; optionals never block",
+  "AC-4": "Items damaged resolve to the fixed set (roof/siding/window/drywall/contents)",
+  "AC-5": "Review shows everything captured and corrections persist downstream",
+  "AC-6": "Confirmation + non-functional concierge preview; demo claim stored locally",
+  "AC-7": "Prototype affordance visible; no auth/payment/contract/signature/fee/CRM",
+  "AC-8": "Server-authoritative extraction; failed parse falls through, never dead-ends",
 };
 
 const RESULTS_FILE = "test-results/results.json";

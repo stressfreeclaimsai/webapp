@@ -30,54 +30,50 @@ execSync("npx prisma db push --skip-generate", { stdio: "inherit", env: process.
 
 const prisma = new PrismaClient();
 
-// Realistic, varied seed content — a prototype must never look empty
-// (constitution §1). Replace this with your project's example data.
-const NOTES = [
-  {
-    title: "Customer interview — Acme onboarding",
-    body: "Three of five testers stalled on the import step. They expected a sample file to start from. Action: ship a 'Load example data' button in the empty state.",
-    tags: "research, onboarding",
-    pinned: true,
-  },
-  {
-    title: "Pricing page rewrite",
-    body: "Lead with the outcome, not the feature list. Move the comparison table below the fold and add a one-line guarantee under the primary CTA.",
-    tags: "copy, growth",
-    pinned: false,
-  },
-  {
-    title: "Weekly metrics",
-    body: "Activation up 6 points after the guided first-run change. Week-2 retention flat — likely a content problem, not an onboarding one. Dig into cohort by source.",
-    tags: "metrics",
-    pinned: false,
-  },
-  {
-    title: "Demo script for Thursday",
-    body: "Open on the populated dashboard (never an empty one). Walk the core loop end to end in under four minutes, then invite them to try the search themselves.",
-    tags: "sales, demo",
-    pinned: true,
-  },
-  {
-    title: "Bug — date filter off by one",
-    body: "Selecting 'last 7 days' includes today twice near midnight UTC. Reproduced on Safari. Likely a timezone boundary in the range helper.",
-    tags: "bug, qa",
-    pinned: false,
-  },
-];
-
 async function main() {
-  console.log("→ Seeding demo user + example notes…");
+  console.log("→ Seeding the demo homeowner + hurricane scenario…");
 
-  // The single seeded demo user the prototype runs as (constitution §2).
-  const user = await prisma.user.create({
+  // The founder's real scenario (WP-1): Martin Kaczmarek, Naples FL, hit by a
+  // hurricane on September 15th. Phone/email are clearly-fake demo values —
+  // in the live flow they are captured in-flow, never pre-filled.
+  const homeowner = await prisma.homeowner.create({
     data: {
-      name: "Ada Lovelace",
-      notes: { create: NOTES },
+      firstName: "Martin",
+      lastName: "Kaczmarek",
+      streetAddress: "927 11th St N",
+      city: "Naples",
+      state: "FL",
+      zip: "34102",
+      phone: "(239) 555-0141",
+      email: "martin.demo@example.com",
     },
-    include: { notes: true },
   });
 
-  console.log(`✓ Seeded user "${user.name}" with ${user.notes.length} notes.`);
+  // One seeded demo claim so the Claim entity never looks empty
+  // (constitution §1). Dated the day after the storm — the shape a fresh
+  // post-hurricane claim would have. Policy number and deductible are
+  // deliberately empty: the flow completes without them (AC-3).
+  const dateOfLoss = new Date(Date.UTC(2025, 8, 15, 12)); // September 15
+  await prisma.claim.create({
+    data: {
+      claimantName: "Martin Kaczmarek",
+      propertyAddress: "927 11th St N, Naples, FL",
+      phone: "(239) 555-0141",
+      email: "martin.demo@example.com",
+      insurerName: "Citizens Property",
+      policyNumber: null,
+      deductible: null,
+      dateOfLoss,
+      itemsDamaged: "roof,window",
+      notes: "Hurricane came through overnight. Roof and two windows damaged.",
+      homeownerId: homeowner.id,
+      createdAt: new Date(Date.UTC(2025, 8, 16, 14)), // reads ~1 day after the loss
+    },
+  });
+
+  console.log(
+    `✓ Seeded homeowner "${homeowner.firstName} ${homeowner.lastName}" with 1 demo claim.`,
+  );
 }
 
 main()

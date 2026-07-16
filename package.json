@@ -8,6 +8,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "seed": "tsx prisma/seed.ts",
+    "vercel-build": "npm run seed && npm run build",
     "test": "playwright test",
     "verify": "tsx scripts/verify.ts",
     "typecheck": "tsc --noEmit",
