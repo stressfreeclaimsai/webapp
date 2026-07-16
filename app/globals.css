@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* ============================================================================
+ * PLACEHOLDER identity — replaced per project by the design-tokens skill.
+ *
+ * The ENTIRE visual identity of the prototype lives in this @theme block:
+ * color, type, radii. Every component consumes these as Tailwind utilities
+ * (bg-surface, text-ink, text-accent, border-border, rounded-card, …).
+ *
+ * RULE: there must be NO hard-coded hex colors and NO font-family names
+ * anywhere else in the codebase. To re-skin the whole prototype, swap the
+ * values in this block — nothing else should need to change.
+ *
+ * The values below are an intentionally neutral, warm placeholder. Do not
+ * invest in making them distinctive here; the per-project palette and type
+ * pairing are generated later by the design-tokens skill.
+ * ========================================================================== */
+@theme {
+  /* — Color ———————————————————————————————————————————————— */
+  --color-surface: #faf9f7; /* page background */
+  --color-surface-raised: #ffffff; /* cards, panels */
+  --color-ink: #1c1917; /* primary text */
+  --color-muted: #6f6a64; /* secondary text */
+  --color-border: #e7e3dd; /* hairlines, dividers */
+  --color-accent: #b4502a; /* single brand accent */
+  --color-accent-ink: #ffffff; /* text/icons on accent */
+
+  /* — Type —————————————————————————————————————————————————— */
+  /* --font-manrope is injected by next/font in app/layout.tsx */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.1;
+  --text-display--font-weight: 700;
+  --text-eyebrow: 0.8125rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.08em;
+
+  /* — Radii ————————————————————————————————————————————————— */
+  --radius-card: 0.875rem;
+  --radius-pill: 9999px;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible keyboard focus everywhere (constitution §6 design floor). */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+/* Respect reduced-motion preference (constitution §6 design floor). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

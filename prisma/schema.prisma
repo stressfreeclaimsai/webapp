@@ -1,0 +1,40 @@
+// ============================================================================
+// EXAMPLE schema — replace the entities per project.
+//
+// What is NOT example, and should stay: a single `User` row is the seeded demo
+// user the prototype runs as (constitution §2). There is no auth and no second
+// user — the User table exists only to anchor seeded data, and is loaded
+// implicitly by the app (never selected through UI).
+//
+// `Note` is the swappable example entity that proves the one-to-many,
+// seed-driven pattern. Replace it with your project's real entities.
+// ============================================================================
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  notes     Note[]
+  createdAt DateTime @default(now())
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  tags      String   @default("") // comma-separated; SQLite has no array type
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+}
