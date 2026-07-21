@@ -8,7 +8,7 @@ This repo is the **StressFreeClaim.ai prototype**, built on the Foundry archetyp
 
 **Two things settled upstream — do not re-decide them:**
 - The **track is prototype** (`open-decisions.md` #1). The fee-waiver / PA-as-contractor close, contracts, e-signatures, and CRM are deliberately **out** — legally gated, not scope to reclaim (`scope.md`).
-- Extraction is **deterministic and local, not an LLM call** (`open-decisions.md` A2) — the no-power/bad-connection scenario is the reason.
+- Extraction is **local-first**: deterministic local parsers own every structured field; an optional, hard-bounded Haiku pass may fill fuzzy residue (name, damage description) but can never block or overwrite (`open-decisions.md` A2 as amended by B20) — the no-power/bad-connection scenario still governs.
 
 ## Golden rules
 

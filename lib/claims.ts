@@ -39,6 +39,8 @@ export type ClaimDraftState = {
   email: string | null;
   policyNumber: string | null;
   deductible: string | null;
+  /** Free-text damage summary (B20) — capture-only, written to Claim.notes. */
+  damageDescription: string | null;
   optionalsOffered: boolean;
   /** Set once submitClaim succeeds; freezes the flow at /done. */
   submittedClaimId: string | null;
@@ -60,6 +62,7 @@ export function emptyDraft(): ClaimDraftState {
     email: null,
     policyNumber: null,
     deductible: null,
+    damageDescription: null,
     optionalsOffered: false,
     submittedClaimId: null,
   };
@@ -80,6 +83,7 @@ export function applyPatch(draft: ClaimDraftState, patch: DraftPatch): ClaimDraf
     "email",
     "policyNumber",
     "deductible",
+    "damageDescription",
   ] as const) {
     const value = patch[field];
     if (value !== undefined) next[field] = value === null ? null : clip(value) || null;
@@ -123,6 +127,7 @@ export function draftFromCookieValue(raw: string | null): ClaimDraftState | null
       email: str(wire.email),
       policyNumber: str(wire.policyNumber),
       deductible: str(wire.deductible),
+      damageDescription: str(wire.damageDescription),
       optionalsOffered: wire.optionalsOffered === true,
       submittedClaimId: str(wire.submittedClaimId),
     };
@@ -204,6 +209,7 @@ export async function submitClaim(draft: ClaimDraftState): Promise<Claim> {
       deductible: draft.deductible,
       dateOfLoss: draft.dateOfLoss!,
       itemsDamaged: serializeItems(draft.itemsDamaged),
+      notes: draft.damageDescription ?? "",
       homeownerId: homeowner.id,
     },
   });

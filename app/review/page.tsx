@@ -98,6 +98,16 @@ export default async function Review() {
         <Field label="What was damaged">
           <ItemsCheckboxes selected={draft.itemsDamaged} />
         </Field>
+        <Field label="Damage, in your own words" optional>
+          {/* Forgiving surface (B21): free text, never blocks, no validation —
+              the human-correction net for the LLM-fillable field (B20). */}
+          <textarea
+            name="damageDescription"
+            rows={3}
+            defaultValue={draft.damageDescription ?? ""}
+            className={`${inputClass} resize-y`}
+          />
+        </Field>
         <Field label="Phone">
           <input
             name="phone"

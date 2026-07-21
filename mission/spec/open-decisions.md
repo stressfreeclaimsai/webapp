@@ -172,6 +172,67 @@ B18. **App palette moved sea-green → coral/warm-serif (founder direction),
   pass may not touch tests. Applying it requires amending spec.md AC-1 + the
   AC-1 test together.
 
+B19. **Extractor precision fix — still deterministic-local (A2), no scope
+  change.** Real-world use surfaced two regex artifacts: the explicit name
+  capture swallowed the start of the address ("Paul Butcher at 1444"), and
+  the bare-street-address fallback's lazy city group truncated every city to
+  its first letter ("1444 Wayne Ave, L"). The name capture now stops at the
+  first connector word (at/in/on/and/from/of/with/living/residing) or
+  digit-bearing token; the city group is now greedy but bounded (1–3
+  capitalised words), so ", Lehigh Acres" survives whole while lowercase
+  prose after the city is never swallowed. *Known limit, accepted:* a
+  ", LA" utterance reads as Louisiana by the comma-abbreviation state rule —
+  deterministic extraction can't tell it from Los Angeles; /review is the
+  correction point (AC-5).
+
+## Extraction architecture (2026-07-21)
+
+B20. **Extraction rebuilt as local-first parsers + a guarded, optional Haiku
+  pass for fuzzy fields — founder direction; amends A2.** A2's *spirit* is
+  preserved: the flow never depends on the network. Local, deterministic,
+  zero-network parsers always run and are authoritative — chrono-node for
+  dates ("yesterday", "the storm hit Tuesday", with absolute-over-relative
+  and most-recent-past-occurrence rules preserved), a street-address locator
+  + `parse-address` for the address/state split, the 50-state gazetteer
+  (B16), fuse.js fuzzy carrier matching against the A7 hint list (typos like
+  "Citzens" canonicalise; a miss stays free text), and the existing
+  phone/email/items/name heuristics. The LLM (`claude-haiku-4-5`, temp 0,
+  max_tokens 256, strict-JSON output) exists ONLY for the fuzzy residue —
+  fullName and the new capture-only damageDescription (→ `Claim.notes`) —
+  and is invoked only when such a field is empty after the local pass AND
+  the text plausibly contains it; invocation rate and per-call tokens are
+  logged. Guards, all required and all degrading to pure-local: 2s hard
+  timeout (SDK timeout + Promise.race), circuit breaker (3 consecutive
+  transport failures → 60s cooldown, per serverless instance), strict zod
+  schema (any mismatch, including unrequested keys, discards the whole
+  response), and merge authority (the LLM only fills still-empty fuzzy
+  fields — it can never overwrite a locally-parsed value). LLM output flows
+  through the same server-side validation as typed input (B14/B15/B16), so
+  extraction quality stays decoupled from data integrity; /review remains
+  the human-correction net. Placement: the pass runs INSIDE the utterance
+  submit transition (`startClaim`), bounded by the timeout — chosen over
+  async post-submit enhancement (which would need draft re-patching after
+  redirect) per the founder's stated assumption. New dependency:
+  `ANTHROPIC_API_KEY` as a server-only env var (Vercel Production/Preview,
+  alongside DATABASE_URL); with no key the app runs pure-local, so the demo
+  never breaks without it. itemsDamaged stays on the local keyword matcher —
+  AC-4's "never invent an enum member" is frozen, and the LLM never touches
+  enum or validated fields. Tests stub the LLM transport at the same
+  JSON+zod validation path via EXTRACTION_LLM_STUB (playwright webServer
+  env), so timeout/malformed/merge guards are exercised through the real UI.
+B21. **B20's visibility gap closed: damageDescription is editable on
+  /review.** B20 shipped the field capture-only — the one persisted value
+  (LLM-fillable, no less) with no human-correction surface before it reached
+  a Claim row. It now renders on /review as an optional free-text textarea
+  ("Damage, in your own words" — distinct from the items label, which
+  already uses "What was damaged"), pre-filled from the draft, folded into
+  the draft by the same confirmAndSubmit → submitClaim path as every other
+  correction (same trim + 300-char clip in `applyPatch`; no new mechanism,
+  no separate write). Forgiving and optional by design: empty is valid,
+  never blocks, no format rules. This restores the property that every
+  field persisted at submit is user-correctable on /review first (AC-5's
+  correction-net principle, extended to the B20 field).
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.
@@ -209,3 +270,10 @@ B18. **App palette moved sea-green → coral/warm-serif (founder direction),
   Workaround: test files import only bare `@playwright/test`; `tests/global-setup.ts`
   imports only Node builtins; the console/network-error fixture is defined inline in
   `tests/home.spec.ts` via `test.extend`. Revisit once Playwright or Node patches this.
+- **Stale SQLite handle after reseed under a live dev server.** `npm run seed` (also run
+  by the Playwright globalSetup, i.e. by `npm run test`/`npm run verify`) deletes and
+  recreates `prisma/dev.db`. A dev server that already opened a Prisma connection keeps a
+  handle to the deleted inode, and SQLite then rejects every write with "attempt to write
+  a readonly database" — reads still work, so only submits fail (as waitForURL timeouts
+  on /done). Workaround: don't keep a long-lived dev server across a reseed — stop it and
+  let Playwright's webServer spawn fresh (or restart the dev server after seeding).

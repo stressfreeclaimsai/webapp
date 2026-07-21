@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import {
-  extractClaimFacts,
   isStateCode,
   ITEMS_DAMAGED,
   REQUIRED_FIELDS,
@@ -10,6 +9,7 @@ import {
   type ItemDamaged,
   type RequiredField,
 } from "@/lib/claim-facts";
+import { extractClaimFacts } from "@/lib/extraction";
 import {
   applyPatch,
   draftFromCookieValue,
@@ -84,8 +84,9 @@ export async function startClaim(formData: FormData): Promise<void> {
   const utterance = String(formData.get("utterance") ?? "");
 
   // A failed or empty parse is a valid state (AC-8): the draft is simply
-  // emptier and /gaps asks for everything, plainly.
-  const facts = extractClaimFacts(utterance);
+  // emptier and /gaps asks for everything, plainly. Extraction is local-first
+  // with a hard-bounded optional LLM pass (B20) — it can never fail the start.
+  const facts = await extractClaimFacts(utterance);
 
   // An implausible parsed date (B14) is treated as no date found: the flow
   // must never OPEN by contesting something the person said — /gaps just asks
@@ -157,6 +158,7 @@ export async function confirmAndSubmit(formData: FormData): Promise<void> {
     email: text("email"),
     policyNumber: text("policyNumber"),
     deductible: text("deductible"),
+    damageDescription: text("damageDescription"),
   });
   await saveDraft(corrected);
 

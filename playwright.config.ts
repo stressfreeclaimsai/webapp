@@ -25,5 +25,10 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Marker-driven stub for the extraction LLM pass (B20): tests exercise
+    // the timeout/malformed/merge guards through the real UI with no network
+    // and no API key. NOTE: with reuseExistingServer, a dev server started
+    // outside Playwright won't have this flag — stop it before `npm test`.
+    env: { ...process.env, EXTRACTION_LLM_STUB: "1" },
   },
 });
