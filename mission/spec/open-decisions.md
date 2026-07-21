@@ -154,6 +154,24 @@ B17. **Open founder decision — policyNumber format.** Left exactly as-is
   A7 already rules carrier hints out as a validation gate. Revisit only if
   the founder supplies a format worth checking.
 
+## Visual pass (2026-07-21)
+
+B18. **App palette moved sea-green → coral/warm-serif (founder direction),
+  applied app-wide via the token layer.** New identity: warm paper bg, white
+  panels, oxblood Fraunces display headings, Inter body (replacing Public
+  Sans), bright coral accents with a darker terracotta reserved for button
+  fills so white button text stays WCAG AA (coral itself is ~3.2:1 on the bg
+  and is used decoratively only; textual accents use the deeper --color-warn
+  at ~6.1:1). Wordmark merged into the prototype bar (one translucent row,
+  warning right — the §7 affordance text is unchanged). Card radius 22px,
+  non-input line-height tightened (leading-relaxed 1.625 → 1.5) so the inputs
+  carry the visual weight. Every screen inherits through globals.css tokens;
+  no flow, state, validation, or test changes.
+  *Pending founder call:* the brief's landing H1 copy ("We're here to help")
+  is NOT applied — the frozen [AC-1] gate pins the current greeting and this
+  pass may not touch tests. Applying it requires amending spec.md AC-1 + the
+  AC-1 test together.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.

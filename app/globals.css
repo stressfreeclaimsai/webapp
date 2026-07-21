@@ -7,39 +7,51 @@
  * opening this just went through a hurricane; it should feel like a steady,
  * competent hand — a concierge, not a form and not a sales pitch.
  *
- *  - Color: warm paper neutrals (nothing insurance-corporate cold) with one
- *    deep, settled sea-green accent (steady, restorative — and pointedly not
- *    roofer-orange or AI-default purple).
- *  - Type: Fraunces for display (warm, human, unhurried) over Public Sans
- *    for everything else (designed for plain-spoken public communication).
+ *  - Color (B18): warm paper neutrals with a bright coral accent and oxblood
+ *    serif headings — warmer and more human than the original sea-green,
+ *    still pointedly not roofer-orange-as-alarm or AI-default purple.
+ *    Coral is decorative/accent only; button fills use the darker terracotta
+ *    (--color-accent-btn) so white text stays WCAG AA.
+ *  - Type: Fraunces for display (warm, human, unhurried) over Inter for
+ *    everything else (plain-spoken UI workhorse).
  *
  * RULE (constitution §6): the ENTIRE visual identity lives in this @theme
  * block. No hard-coded hex colors and no font-family names anywhere else.
  * ========================================================================== */
 @theme {
   /* — Color ———————————————————————————————————————————————— */
-  --color-surface: #f7f5f0; /* warm paper — page background */
-  --color-surface-raised: #fffefa; /* cards, panels, inputs */
-  --color-ink: #26241e; /* primary text — warm near-black */
-  --color-muted: #6c675c; /* secondary text */
-  --color-border: #e4dfd4; /* hairlines, dividers */
-  --color-accent: #2e6b5e; /* deep sea-green — the steady hand */
-  --color-accent-ink: #ffffff; /* text/icons on accent */
-  --color-accent-soft: #e9f1ec; /* quiet tinted panels */
+  --color-surface: #fbf4ef; /* warm paper — page background */
+  --color-surface-raised: #ffffff; /* cards, panels, inputs */
+  --color-surface-2: #fdf7f2; /* quiet secondary panels */
+  --color-ink: #2e2320; /* sans body/UI text — warm near-black */
+  --color-ink-display: #5e2a28; /* oxblood — serif display headings */
+  --color-muted: #7c6b62; /* secondary text */
+  --color-faint: #b4a498; /* placeholders, tertiary text */
+  --color-border: #efe1d6; /* hairlines, dividers */
+  --color-accent: #e0714c; /* bright coral — accents, dot, focus, glow */
+  --color-accent-btn: #b84e2e; /* terracotta — button fills (AA w/ white) */
+  --color-accent-btn-hover: #a5441f;
+  --color-accent-ink: #ffffff; /* text/icons on accent-btn */
+  --color-accent-soft: #fbe7dc; /* quiet tinted panels, focus ring */
+  --color-warn: #8a4b3e; /* prototype warning + textual accents on bg */
 
   /* — Type —————————————————————————————————————————————————— */
   /* Font variables are injected by next/font in app/layout.tsx */
-  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --text-display: 2.125rem;
-  --text-display--line-height: 1.18;
-  --text-display--font-weight: 550;
-  --text-eyebrow: 0.8125rem;
+  --text-display--line-height: 1.08;
+  --text-display--font-weight: 500;
+  --text-display--letter-spacing: -0.015em;
+  --text-eyebrow: 0.7rem;
   --text-eyebrow--line-height: 1.2;
-  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--letter-spacing: 0.12em;
+
+  /* Non-input text sits tighter so the inputs carry the visual weight. */
+  --leading-relaxed: 1.5;
 
   /* — Radii ————————————————————————————————————————————————— */
-  --radius-card: 0.875rem;
+  --radius-card: 1.375rem; /* 22px */
   --radius-pill: 9999px;
 }
 
@@ -50,6 +62,28 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* One soft warm glow behind the hero top — a single page-level layer
+     (the body background propagates to the canvas, so this paints above it
+     and below all content). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      58% 60% at 50% 40%,
+      rgba(240, 182, 152, 0.5),
+      rgba(244, 214, 197, 0.22) 55%,
+      transparent 72%
+    );
+  }
+
+  /* Serif display headings carry the oxblood ink. */
+  h1 {
+    color: var(--color-ink-display);
   }
 
   /* Visible keyboard focus everywhere (constitution §6 design floor). */

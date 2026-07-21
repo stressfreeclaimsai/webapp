@@ -128,7 +128,7 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
             type="submit"
             name="intent"
             value="save"
-            className="rounded-pill bg-accent px-7 py-3.5 font-semibold text-accent-ink"
+            className="rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover"
           >
             Continue
           </button>
@@ -137,7 +137,7 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
             name="intent"
             value="skip"
             formNoValidate
-            className="rounded-pill px-7 py-3.5 font-semibold text-accent underline-offset-4 hover:underline"
+            className="rounded-pill px-7 py-3.5 font-semibold text-warn underline-offset-4 hover:underline"
           >
             Skip for now
           </button>
@@ -175,7 +175,7 @@ export default async function Gaps() {
 
   return (
     <section className="pt-2 sm:pt-6">
-      <p className="text-eyebrow font-semibold uppercase text-accent">{intro}</p>
+      <p className="text-eyebrow font-semibold uppercase text-warn">{intro}</p>
       <h1 className="mt-3 text-balance font-display text-display">{question.title}</h1>
       <p className="mt-3 leading-relaxed text-muted">{question.help}</p>
       <form action={answerGap} className="mt-7 grid gap-4">
@@ -184,7 +184,7 @@ export default async function Gaps() {
         {inputFor(field, draft)}
         <button
           type="submit"
-          className="w-full rounded-pill bg-accent px-7 py-3.5 font-semibold text-accent-ink sm:w-fit"
+          className="w-full rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover sm:w-fit"
         >
           Continue
         </button>

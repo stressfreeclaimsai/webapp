@@ -136,7 +136,7 @@ export default async function Review() {
 
         <button
           type="submit"
-          className="mt-2 w-full rounded-pill bg-accent px-7 py-3.5 font-semibold text-accent-ink"
+          className="mt-2 w-full rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover"
         >
           Everything&rsquo;s right — start my claim
         </button>

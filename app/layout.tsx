@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Fraunces, Public_Sans } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import { PrototypeBanner } from "@/components/prototype-banner";
 import "./globals.css";
 
@@ -11,10 +10,11 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
 });
-const publicSans = Public_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-public-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -28,15 +28,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${publicSans.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
         <PrototypeBanner />
-        <header className="mx-auto w-full max-w-xl px-5 pt-6 sm:px-6">
-          <Link href="/" className="font-display text-lg font-semibold tracking-tight">
-            StressFreeClaim<span className="text-accent">.ai</span>
-          </Link>
-        </header>
-        <main className="mx-auto w-full max-w-xl px-5 py-8 sm:px-6 sm:py-10">{children}</main>
+        <main className="mx-auto w-full max-w-[660px] px-5 py-8 sm:px-6 sm:py-10">{children}</main>
       </body>
     </html>
   );

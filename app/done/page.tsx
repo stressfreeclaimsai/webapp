@@ -48,7 +48,7 @@ export default async function Done() {
         </p>
         <Link
           href="/"
-          className="mt-6 inline-block rounded-pill bg-accent px-7 py-3.5 font-semibold text-accent-ink"
+          className="mt-6 inline-block rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover"
         >
           Tell us what happened
         </Link>
@@ -100,7 +100,7 @@ export default async function Done() {
       <div className="mt-8 rounded-card border border-border bg-surface-raised p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3 border-b border-border pb-3">
           <h2 className="font-medium">Your claim summary</h2>
-          <span className="text-sm font-semibold text-accent">{reference}</span>
+          <span className="text-sm font-semibold text-warn">{reference}</span>
         </div>
         <dl className="mt-4 grid gap-2.5 text-sm">
           {summary.map(([label, value]) => (
@@ -113,7 +113,7 @@ export default async function Done() {
       </div>
 
       {/* The concierge promise — a non-functional preview, nothing more. */}
-      <h2 className="mt-10 text-eyebrow font-semibold uppercase text-accent">What happens next</h2>
+      <h2 className="mt-10 text-eyebrow font-semibold uppercase text-warn">What happens next</h2>
       <ol className="mt-4 grid gap-0">
         {NEXT_STEPS(draft.insurerName!).map((step, i) => (
           <li key={step.title} className="relative flex gap-4 pb-8 last:pb-0">
@@ -123,7 +123,7 @@ export default async function Done() {
                 className="absolute left-[15px] top-8 h-[calc(100%-2rem)] w-px bg-border"
               />
             )}
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-accent-soft text-sm font-semibold text-accent">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-accent-soft text-sm font-semibold text-warn">
               {i + 1}
             </span>
             <div>
@@ -139,7 +139,7 @@ export default async function Done() {
         <span className="font-medium text-ink">{draft.email}</span>.
       </p>
       <p className="mt-4 text-sm text-muted">
-        <Link href="/" className="text-accent underline-offset-4 hover:underline">
+        <Link href="/" className="text-warn underline-offset-4 hover:underline">
           Start another claim
         </Link>
       </p>
