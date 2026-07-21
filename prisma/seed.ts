@@ -58,6 +58,7 @@ async function main() {
     data: {
       claimantName: "Martin Kaczmarek",
       propertyAddress: "927 11th St N, Naples, FL",
+      stateOfLoss: "FL",
       phone: "(239) 555-0141",
       email: "martin.demo@example.com",
       insurerName: "Citizens Property",

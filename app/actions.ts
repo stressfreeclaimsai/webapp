@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import {
   extractClaimFacts,
+  isStateCode,
   ITEMS_DAMAGED,
   REQUIRED_FIELDS,
+  validateDateOfLoss,
   type ItemDamaged,
   type RequiredField,
 } from "@/lib/claim-facts";
@@ -14,6 +16,7 @@ import {
   draftToCookieValue,
   emptyDraft,
   submitClaim,
+  ImplausibleDraftError,
   IncompleteDraftError,
   type ClaimDraftState,
   type DraftPatch,
@@ -58,6 +61,12 @@ function patchFor(field: RequiredField, formData: FormData): DraftPatch {
       const date = parseDateInput(String(formData.get("value") ?? ""));
       return date ? { dateOfLoss: date } : {};
     }
+    case "stateOfLoss": {
+      // Enum-checked (B16): anything outside the 50+DC set is simply not an
+      // answer, so the step re-asks plainly.
+      const value = String(formData.get("value") ?? "");
+      return isStateCode(value) ? { stateOfLoss: value } : {};
+    }
     default: {
       const value = String(formData.get("value") ?? "").trim();
       return value ? { [field]: value } : {};
@@ -77,6 +86,14 @@ export async function startClaim(formData: FormData): Promise<void> {
   // A failed or empty parse is a valid state (AC-8): the draft is simply
   // emptier and /gaps asks for everything, plainly.
   const facts = extractClaimFacts(utterance);
+
+  // An implausible parsed date (B14) is treated as no date found: the flow
+  // must never OPEN by contesting something the person said — /gaps just asks
+  // for the date plainly.
+  if (facts.dateOfLoss && validateDateOfLoss(facts.dateOfLoss) !== null) {
+    delete facts.dateOfLoss;
+  }
+
   await saveDraft(applyPatch(emptyDraft(), facts));
   redirect("/gaps");
 }
@@ -126,9 +143,13 @@ export async function confirmAndSubmit(formData: FormData): Promise<void> {
   if (draft!.submittedClaimId) redirect("/done");
 
   const text = (name: string) => String(formData.get(name) ?? "").trim() || null;
+  const stateRaw = String(formData.get("stateOfLoss") ?? "");
   const corrected = applyPatch(draft!, {
     fullName: text("fullName"),
     propertyAddress: text("propertyAddress"),
+    // A non-enum state (B16) clears the field, so submit re-routes to the gap
+    // step that asks for it — it can never ride into a Claim row.
+    stateOfLoss: isStateCode(stateRaw) ? stateRaw : null,
     dateOfLoss: parseDateInput(String(formData.get("dateOfLoss") ?? "")),
     insurerName: text("insurerName"),
     itemsDamaged: parseItemsField(formData),
@@ -144,6 +165,9 @@ export async function confirmAndSubmit(formData: FormData): Promise<void> {
     await saveDraft({ ...corrected, submittedClaimId: claim.id });
   } catch (error) {
     if (error instanceof IncompleteDraftError) redirect("/gaps");
+    // Implausible values (B14/B15) stay in the saved draft, so /review
+    // re-renders with the typed input kept and inline guidance (never-trap).
+    if (error instanceof ImplausibleDraftError) redirect("/review");
     throw error;
   }
   redirect("/done");

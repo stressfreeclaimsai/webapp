@@ -21,9 +21,76 @@ export const ITEM_LABELS: Record<ItemDamaged, string> = {
   contents: "Contents (belongings inside)",
 };
 
+// The 50 states + DC (decision B16). Capture only — no licensing/eligibility
+// logic may hang off this list; that gate is a founder + regulatory-attorney
+// decision (see open-decisions.md).
+export const US_STATES = [
+  { code: "AL", name: "Alabama" },
+  { code: "AK", name: "Alaska" },
+  { code: "AZ", name: "Arizona" },
+  { code: "AR", name: "Arkansas" },
+  { code: "CA", name: "California" },
+  { code: "CO", name: "Colorado" },
+  { code: "CT", name: "Connecticut" },
+  { code: "DE", name: "Delaware" },
+  { code: "DC", name: "District of Columbia" },
+  { code: "FL", name: "Florida" },
+  { code: "GA", name: "Georgia" },
+  { code: "HI", name: "Hawaii" },
+  { code: "ID", name: "Idaho" },
+  { code: "IL", name: "Illinois" },
+  { code: "IN", name: "Indiana" },
+  { code: "IA", name: "Iowa" },
+  { code: "KS", name: "Kansas" },
+  { code: "KY", name: "Kentucky" },
+  { code: "LA", name: "Louisiana" },
+  { code: "ME", name: "Maine" },
+  { code: "MD", name: "Maryland" },
+  { code: "MA", name: "Massachusetts" },
+  { code: "MI", name: "Michigan" },
+  { code: "MN", name: "Minnesota" },
+  { code: "MS", name: "Mississippi" },
+  { code: "MO", name: "Missouri" },
+  { code: "MT", name: "Montana" },
+  { code: "NE", name: "Nebraska" },
+  { code: "NV", name: "Nevada" },
+  { code: "NH", name: "New Hampshire" },
+  { code: "NJ", name: "New Jersey" },
+  { code: "NM", name: "New Mexico" },
+  { code: "NY", name: "New York" },
+  { code: "NC", name: "North Carolina" },
+  { code: "ND", name: "North Dakota" },
+  { code: "OH", name: "Ohio" },
+  { code: "OK", name: "Oklahoma" },
+  { code: "OR", name: "Oregon" },
+  { code: "PA", name: "Pennsylvania" },
+  { code: "RI", name: "Rhode Island" },
+  { code: "SC", name: "South Carolina" },
+  { code: "SD", name: "South Dakota" },
+  { code: "TN", name: "Tennessee" },
+  { code: "TX", name: "Texas" },
+  { code: "UT", name: "Utah" },
+  { code: "VT", name: "Vermont" },
+  { code: "VA", name: "Virginia" },
+  { code: "WA", name: "Washington" },
+  { code: "WV", name: "West Virginia" },
+  { code: "WI", name: "Wisconsin" },
+  { code: "WY", name: "Wyoming" },
+] as const;
+export type StateCode = (typeof US_STATES)[number]["code"];
+
+export function isStateCode(value: unknown): value is StateCode {
+  return typeof value === "string" && US_STATES.some((s) => s.code === value);
+}
+
+export function stateName(code: StateCode): string {
+  return US_STATES.find((s) => s.code === code)!.name;
+}
+
 export type ClaimFacts = {
   fullName: string;
   propertyAddress: string;
+  stateOfLoss: StateCode;
   dateOfLoss: Date;
   insurerName: string;
   itemsDamaged: ItemDamaged[];
@@ -33,12 +100,13 @@ export type ClaimFacts = {
 export type PartialClaimFacts = Partial<ClaimFacts>;
 
 // Required to submit (architecture §5): the five ball-rolling facts plus
-// phone + email (needed to follow up). The order here is the order the
-// gap-filling step asks in. policyNumber and deductible are NOT here — they
-// are optional and never block (AC-3).
+// state of loss (B16) and phone + email (needed to follow up). The order here
+// is the order the gap-filling step asks in. policyNumber and deductible are
+// NOT here — they are optional and never block (AC-3).
 export const REQUIRED_FIELDS = [
   "fullName",
   "propertyAddress",
+  "stateOfLoss",
   "dateOfLoss",
   "insurerName",
   "itemsDamaged",
@@ -235,14 +303,57 @@ function extractItems(text: string): ItemDamaged[] {
   return ITEMS_DAMAGED.filter((item) => ITEM_KEYWORDS[item].test(text));
 }
 
+function extractStateOfLoss(text: string): StateCode | undefined {
+  // Address-style abbreviation first ("Naples, FL"): the comma + UPPERCASE
+  // pair anchors it, so prose words like "in" or "ok" never read as a state.
+  const abbrev = /,\s*([A-Z]{2})\b/.exec(text);
+  if (abbrev && isStateCode(abbrev[1])) return abbrev[1];
+
+  // Full state names anywhere, longest first ("West Virginia" over "Virginia").
+  const sorted = [...US_STATES].sort((a, b) => b.name.length - a.name.length);
+  const byName = sorted.find((s) => new RegExp(`\\b${s.name}\\b`, "i").test(text));
+  return byName?.code;
+}
+
 function extractPhone(text: string): string | undefined {
   const match = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/.exec(text);
   return match ? match[0].trim() : undefined;
 }
 
+// One email shape for the whole app: what the extractor recognises is exactly
+// what validation accepts (B15).
+const EMAIL_SHAPE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+
 function extractEmail(text: string): string | undefined {
-  const match = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.exec(text);
+  const match = EMAIL_SHAPE.exec(text);
   return match ? match[0] : undefined;
+}
+
+/**
+ * Plausibility issues (B14/B15). These are checks on a PRESENT value —
+ * presence itself stays `missingRequired()`'s job. Pure so both the gap step
+ * and review render the same guidance and `submitClaim` enforces the same
+ * rules server-side.
+ */
+export type FieldIssue = "dateFuture" | "dateTooOld" | "emailShape";
+
+/**
+ * B14 — founder decision, not spec-derived (see open-decisions.md): the storm
+ * date can't be in the future and can't be more than 24 months back. `now` is
+ * injectable for tests; comparisons are calendar-date at UTC noon, matching
+ * how dates are stored everywhere else in the app.
+ */
+export function validateDateOfLoss(date: Date, now: Date = new Date()): FieldIssue | null {
+  const today = utcDate(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (date.getTime() > today.getTime()) return "dateFuture";
+  const floor = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 24, now.getUTCDate(), 12);
+  if (date.getTime() < floor) return "dateTooOld";
+  return null;
+}
+
+/** B15 — basic shape only; no deliverability or network check. */
+export function validateEmail(value: string): FieldIssue | null {
+  return new RegExp(`^${EMAIL_SHAPE.source}$`).test(value.trim()) ? null : "emailShape";
 }
 
 /**
@@ -262,6 +373,9 @@ export function extractClaimFacts(utterance: string, now: Date = new Date()): Pa
 
   const propertyAddress = extractAddress(text);
   if (propertyAddress) facts.propertyAddress = propertyAddress;
+
+  const stateOfLoss = extractStateOfLoss(text);
+  if (stateOfLoss) facts.stateOfLoss = stateOfLoss;
 
   const dateOfLoss = extractDateOfLoss(text, now);
   if (dateOfLoss) facts.dateOfLoss = dateOfLoss;
@@ -285,6 +399,7 @@ export function extractClaimFacts(utterance: string, now: Date = new Date()): Pa
 export type FactsLike = {
   fullName?: string | null;
   propertyAddress?: string | null;
+  stateOfLoss?: string | null;
   dateOfLoss?: Date | null;
   insurerName?: string | null;
   itemsDamaged?: readonly ItemDamaged[] | null;
@@ -305,6 +420,8 @@ export function missingRequired(draft: FactsLike): RequiredField[] {
         return !has(draft.fullName);
       case "propertyAddress":
         return !has(draft.propertyAddress);
+      case "stateOfLoss":
+        return !isStateCode(draft.stateOfLoss);
       case "dateOfLoss":
         return !(draft.dateOfLoss instanceof Date);
       case "insurerName":

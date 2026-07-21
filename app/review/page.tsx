@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { confirmAndSubmit } from "@/app/actions";
+import { FieldGuidance } from "@/components/field-guidance";
 import { ItemsCheckboxes } from "@/components/items-checkboxes";
-import { draftFromCookieValue, draftMissing } from "@/lib/claims";
+import { StateSelect } from "@/components/state-select";
+import { draftFromCookieValue, draftIssues, draftMissing } from "@/lib/claims";
 import { readDraftCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +12,8 @@ export const dynamic = "force-dynamic";
  * WP-4 — Review & correct: the safety net that lets the parse be imperfect
  * (AC-5). Everything captured is shown and editable in place; one clear way
  * to confirm. Submitting persists any corrections, then files the demo claim.
+ * If a value fails plausibility (B14/B15) the submit routes back here — the
+ * typed input is kept (it lives in the draft) and guidance renders inline.
  */
 
 const inputClass =
@@ -40,6 +44,9 @@ export default async function Review() {
   if (draft.submittedClaimId) redirect("/done");
   if (draftMissing(draft).length > 0) redirect("/gaps");
 
+  const issues = draftIssues(draft);
+  const issueFor = (field: string) => issues.find((i) => i.field === field)?.issue;
+
   return (
     <section className="pt-2 sm:pt-6">
       <h1 className="text-balance font-display text-display">Here&rsquo;s what we have.</h1>
@@ -66,6 +73,9 @@ export default async function Review() {
             className={inputClass}
           />
         </Field>
+        <Field label="State the property is in">
+          <StateSelect name="stateOfLoss" selected={draft.stateOfLoss} />
+        </Field>
         <Field label="Date of loss">
           <input
             name="dateOfLoss"
@@ -74,6 +84,7 @@ export default async function Review() {
             defaultValue={draft.dateOfLoss?.toISOString().slice(0, 10) ?? ""}
             className={inputClass}
           />
+          <FieldGuidance issue={issueFor("dateOfLoss")} />
         </Field>
         <Field label="Insurance company">
           <input
@@ -104,6 +115,7 @@ export default async function Review() {
             defaultValue={draft.email ?? ""}
             className={inputClass}
           />
+          <FieldGuidance issue={issueFor("email")} />
         </Field>
         <Field label="Policy number" optional>
           <input

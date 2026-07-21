@@ -47,6 +47,7 @@ model Claim {
   // Snapshot of the intake — exactly what the homeowner confirmed at Review.
   claimantName    String
   propertyAddress String
+  stateOfLoss     String // two-letter code from the fixed 50+DC set (B16) — capture only, no eligibility logic
   phone           String
   email           String
 

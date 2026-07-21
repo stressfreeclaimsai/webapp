@@ -1,17 +1,26 @@
 import { redirect } from "next/navigation";
 import { answerGap, saveOptionals } from "@/app/actions";
+import { FieldGuidance } from "@/components/field-guidance";
 import { ItemsCheckboxes } from "@/components/items-checkboxes";
-import { REQUIRED_FIELDS, type RequiredField } from "@/lib/claim-facts";
-import { draftFromCookieValue, draftMissing, type ClaimDraftState } from "@/lib/claims";
+import { StateSelect } from "@/components/state-select";
+import { REQUIRED_FIELDS, type FieldIssue, type RequiredField } from "@/lib/claim-facts";
+import {
+  draftFromCookieValue,
+  draftIssues,
+  draftMissing,
+  type ClaimDraftState,
+} from "@/lib/claims";
 import { readDraftCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 /**
- * WP-3 — Gap-filling: render ONLY what `missingRequired()` returns, one
- * question at a time, in plain language (AC-3). After a good parse this is
- * just phone and email; after a thin one, whatever else is missing. Optional
- * extras (policy number, deductible) are offered once and never block.
+ * WP-3 — Gap-filling: render what `missingRequired()` returns plus any field
+ * whose present value fails plausibility (B14/B15), one question at a time,
+ * in plain language (AC-3). An implausible answer re-asks the SAME question
+ * with the typed value kept and inline guidance — never-trap, no error
+ * screen. Optional extras (policy number, deductible) are offered once and
+ * never block.
  */
 
 const QUESTIONS: Record<RequiredField, { title: string; help: string }> = {
@@ -19,6 +28,10 @@ const QUESTIONS: Record<RequiredField, { title: string; help: string }> = {
   propertyAddress: {
     title: "Where's the damaged property?",
     help: "Street address, city, and state.",
+  },
+  stateOfLoss: {
+    title: "Which state is the property in?",
+    help: "So the claim is filed in the right place.",
   },
   dateOfLoss: { title: "When did the damage happen?", help: "Your best guess is fine." },
   insurerName: {
@@ -36,9 +49,13 @@ const QUESTIONS: Record<RequiredField, { title: string; help: string }> = {
 function inputFor(field: RequiredField, draft: ClaimDraftState) {
   const base =
     "w-full rounded-card border border-border bg-surface-raised p-4 leading-relaxed shadow-sm";
+  // Re-asks (an implausible value, B14/B15) keep what was typed — the draft
+  // still holds it, so it comes back as the default.
   switch (field) {
     case "itemsDamaged":
       return <ItemsCheckboxes selected={draft.itemsDamaged} />;
+    case "stateOfLoss":
+      return <StateSelect name="value" selected={draft.stateOfLoss} autoFocus />;
     case "dateOfLoss":
       return (
         <input
@@ -46,6 +63,7 @@ function inputFor(field: RequiredField, draft: ClaimDraftState) {
           name="value"
           required
           max={new Date().toISOString().slice(0, 10)}
+          defaultValue={draft.dateOfLoss?.toISOString().slice(0, 10) ?? ""}
           className={base}
         />
       );
@@ -60,6 +78,7 @@ function inputFor(field: RequiredField, draft: ClaimDraftState) {
           name="value"
           required
           autoComplete="email"
+          defaultValue={draft.email ?? ""}
           className={base}
           autoFocus
         />
@@ -133,14 +152,22 @@ export default async function Gaps() {
   if (!draft) redirect("/");
   if (draft.submittedClaimId) redirect("/done");
 
+  // A field needs attention if it's missing OR present but implausible
+  // (B14/B15) — the latter re-asks the same question with guidance instead of
+  // letting a bad value ride silently to review.
   const missing = draftMissing(draft);
-  if (missing.length === 0 && draft.optionalsOffered) redirect("/review");
-  if (missing.length === 0) return <OptionalStep draft={draft} />;
+  const issues = draftIssues(draft);
+  const needsAttention = REQUIRED_FIELDS.filter(
+    (f) => missing.includes(f) || issues.some((i) => i.field === f),
+  );
+  if (needsAttention.length === 0 && draft.optionalsOffered) redirect("/review");
+  if (needsAttention.length === 0) return <OptionalStep draft={draft} />;
 
-  const field = missing[0];
+  const field = needsAttention[0];
+  const issue: FieldIssue | undefined = issues.find((i) => i.field === field)?.issue;
   const question = QUESTIONS[field];
   const firstName = draft.fullName?.trim().split(/\s+/)[0];
-  const answered = REQUIRED_FIELDS.length - missing.length;
+  const answered = REQUIRED_FIELDS.length - needsAttention.length;
   const intro =
     answered >= 3
       ? `Thanks${firstName ? `, ${firstName}` : ""} — your message covered most of it.`
@@ -153,6 +180,7 @@ export default async function Gaps() {
       <p className="mt-3 leading-relaxed text-muted">{question.help}</p>
       <form action={answerGap} className="mt-7 grid gap-4">
         <input type="hidden" name="field" value={field} />
+        <FieldGuidance issue={issue} />
         {inputFor(field, draft)}
         <button
           type="submit"

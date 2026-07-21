@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ITEM_LABELS } from "@/lib/claim-facts";
+import { ITEM_LABELS, stateName } from "@/lib/claim-facts";
 import { draftFromCookieValue, draftMissing } from "@/lib/claims";
 import { readDraftCookie } from "@/lib/session";
 
@@ -67,6 +67,8 @@ export default async function Done() {
   const summary: Array<[string, string]> = [
     ["Name", draft.fullName!],
     ["Property", draft.propertyAddress!],
+    // Guarded: a claim submitted before state capture (B16) has no state.
+    ...(draft.stateOfLoss ? ([["State", stateName(draft.stateOfLoss)]] as [string, string][]) : []),
     ["Date of loss", dateLong.format(draft.dateOfLoss!)],
     ["Insurance company", draft.insurerName!],
     ["Damaged", items.join(", ")],

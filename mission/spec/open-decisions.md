@@ -120,6 +120,40 @@ B13. **Draft state moved from a ClaimDraft row to the httpOnly demo cookie —
   B3–B5's session-key/`optionalsOffered`/idempotent-submit semantics carry
   over unchanged, now keyed by the cookie itself.
 
+## Validation pass (2026-07-21)
+
+B14. **Date-of-loss plausibility: not in the future, not more than 24 months
+  back.** *This rule is a founder decision, not spec-derived* — the spec pack
+  defines no date window (a flagged gap); the founder set the bound directly.
+  Enforced in shared lib code (`validateDateOfLoss` in `lib/claim-facts.ts`,
+  re-checked server-side in `submitClaim`), applied on both `/review` and the
+  `/gaps` date step, never by HTML attributes alone. Never-trap: the
+  implausible value stays in the draft so the step re-renders with the typed
+  input kept and plain inline guidance — no error screen ([AC-8]). An
+  implausible date parsed from the opening utterance is dropped rather than
+  contested, so the flow never opens by arguing with the person.
+B15. **Email shape validation.** The spec names no email format (a flagged
+  gap); the app now enforces the same shape the extractor already recognized
+  (`user@domain.tld`), shared-lib + server-side, on `/review` and the `/gaps`
+  email step, with the same never-trap re-ask. Shape only — no deliverability
+  or network check. The utterance box stays fully forgiving: any non-empty
+  string falls through to gap-filling.
+B16. **State of loss captured as a required 50-state + DC enum select — never
+  free text.** New field (`stateOfLoss`, two-letter code) on the draft and the
+  Claim row; extraction reads address-style abbreviations (", FL") and full
+  state names from the utterance; the gap step asks it like any other required
+  field, so never-trap holds. A non-enum value is cleared server-side and the
+  flow routes back to the question — it can never reach a Claim row. City was
+  deliberately not added. **Deferred — flagged for the founder + regulatory
+  attorney: state-based eligibility.** Capture only; NO logic blocks, warns,
+  declines, or routes a claim based on whether the state is one the founder
+  is licensed in. Whether and how to gate on licensing is a legal decision,
+  out of prototype scope (consistent with the settled Won'ts in `scope.md`).
+B17. **Open founder decision — policyNumber format.** Left exactly as-is
+  (free text, optional, no validation); real formats are carrier-specific and
+  A7 already rules carrier hints out as a validation gate. Revisit only if
+  the founder supplies a format worth checking.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.
