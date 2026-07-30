@@ -26,7 +26,18 @@ for (const suffix of ["", "-journal", "-wal", "-shm"]) {
 }
 
 console.log("→ Creating schema (prisma db push)…");
-execSync("npx prisma db push --skip-generate", { stdio: "inherit", env: process.env });
+// `tsx` injects its loader through NODE_OPTIONS. Passing that loader into the
+// nested Prisma CLI can prevent Prisma's schema engine from starting under
+// newer Node releases, even though the same CLI command works directly.
+// Keep the database URL and ordinary environment, but do not leak the parent
+// TypeScript runner into the child CLI process.
+const prismaCliEnv = { ...process.env };
+delete prismaCliEnv.NODE_OPTIONS;
+delete prismaCliEnv.NODE_CHANNEL_FD;
+// Some desktop runtimes provide an empty/invalid inherited RUST_LOG value,
+// which causes Prisma's Rust schema engine to exit without a useful message.
+prismaCliEnv.RUST_LOG = "debug";
+execSync("npx prisma db push --skip-generate", { stdio: "inherit", env: prismaCliEnv });
 
 const prisma = new PrismaClient();
 

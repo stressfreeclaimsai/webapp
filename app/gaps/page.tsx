@@ -46,21 +46,22 @@ const QUESTIONS: Record<RequiredField, { title: string; help: string }> = {
   email: { title: "And your email?", help: "We'll send a copy of everything we do." },
 };
 
-function inputFor(field: RequiredField, draft: ClaimDraftState) {
+function inputFor(field: RequiredField, draft: ClaimDraftState, ariaLabel: string) {
   const base =
-    "w-full rounded-card border border-border bg-surface-raised p-4 leading-relaxed shadow-sm";
+    "min-h-12 w-full rounded-control border border-border-strong bg-surface-raised px-4 py-3 leading-relaxed shadow-sm transition-[border-color,box-shadow] duration-200 focus:border-accent focus:ring-4 focus:ring-accent-soft";
   // Re-asks (an implausible value, B14/B15) keep what was typed — the draft
   // still holds it, so it comes back as the default.
   switch (field) {
     case "itemsDamaged":
       return <ItemsCheckboxes selected={draft.itemsDamaged} />;
     case "stateOfLoss":
-      return <StateSelect name="value" selected={draft.stateOfLoss} autoFocus />;
+      return <StateSelect name="value" selected={draft.stateOfLoss} autoFocus ariaLabel={ariaLabel} />;
     case "dateOfLoss":
       return (
         <input
           type="date"
           name="value"
+          aria-label={ariaLabel}
           required
           max={new Date().toISOString().slice(0, 10)}
           defaultValue={draft.dateOfLoss?.toISOString().slice(0, 10) ?? ""}
@@ -69,13 +70,14 @@ function inputFor(field: RequiredField, draft: ClaimDraftState) {
       );
     case "phone":
       return (
-        <input type="tel" name="value" required autoComplete="tel" className={base} autoFocus />
+        <input type="tel" name="value" aria-label={ariaLabel} required autoComplete="tel" className={base} autoFocus />
       );
     case "email":
       return (
         <input
           type="email"
           name="value"
+          aria-label={ariaLabel}
           required
           autoComplete="email"
           defaultValue={draft.email ?? ""}
@@ -84,13 +86,13 @@ function inputFor(field: RequiredField, draft: ClaimDraftState) {
         />
       );
     default:
-      return <input type="text" name="value" required className={base} autoFocus />;
+      return <input type="text" name="value" aria-label={ariaLabel} required className={base} autoFocus />;
   }
 }
 
 function OptionalStep({ draft }: { draft: ClaimDraftState }) {
   const base =
-    "w-full rounded-card border border-border bg-surface-raised p-4 leading-relaxed shadow-sm";
+    "min-h-12 w-full rounded-control border border-border-strong bg-surface-raised px-4 py-3 leading-relaxed shadow-sm transition-[border-color,box-shadow] duration-200 focus:border-accent focus:ring-4 focus:ring-accent-soft";
   return (
     <section className="pt-2 sm:pt-6">
       <h1 className="text-balance font-display text-display">Two optional details.</h1>
@@ -98,7 +100,7 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
         Helpful if they&rsquo;re handy — completely fine if they&rsquo;re not. We can get started
         either way.
       </p>
-      <form action={saveOptionals} className="mt-7 grid gap-5">
+      <form action={saveOptionals} className="mt-7 grid gap-5 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6">
         <div className="grid gap-1.5">
           <label htmlFor="policyNumber" className="font-medium">
             Policy number <span className="font-normal text-muted">(optional)</span>
@@ -128,7 +130,7 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
             type="submit"
             name="intent"
             value="save"
-            className="rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover"
+            className="min-h-12 rounded-pill bg-accent-btn px-7 py-3 font-semibold text-accent-ink shadow-sm transition-[background-color,box-shadow] duration-200 hover:bg-accent-btn-hover hover:shadow-md"
           >
             Continue
           </button>
@@ -137,7 +139,7 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
             name="intent"
             value="skip"
             formNoValidate
-            className="rounded-pill px-7 py-3.5 font-semibold text-warn underline-offset-4 hover:underline"
+            className="min-h-12 rounded-pill px-7 py-3 font-semibold text-warn underline-offset-4 transition-colors duration-200 hover:bg-accent-soft hover:underline"
           >
             Skip for now
           </button>
@@ -175,16 +177,28 @@ export default async function Gaps() {
 
   return (
     <section className="pt-2 sm:pt-6">
+      <div className="mb-7" aria-label={`${answered} of ${REQUIRED_FIELDS.length} required details captured`}>
+        <div className="mb-2 flex items-center justify-between gap-4 text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+          <span>Claim details</span>
+          <span>{answered} of {REQUIRED_FIELDS.length}</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-pill bg-surface-deep">
+          <div
+            className="h-full rounded-pill bg-accent transition-[width] duration-300"
+            style={{ width: `${Math.max(8, (answered / REQUIRED_FIELDS.length) * 100)}%` }}
+          />
+        </div>
+      </div>
       <p className="text-eyebrow font-semibold uppercase text-warn">{intro}</p>
       <h1 className="mt-3 text-balance font-display text-display">{question.title}</h1>
       <p className="mt-3 leading-relaxed text-muted">{question.help}</p>
-      <form action={answerGap} className="mt-7 grid gap-4">
+      <form action={answerGap} className="mt-7 grid gap-4 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6">
         <input type="hidden" name="field" value={field} />
         <FieldGuidance issue={issue} />
-        {inputFor(field, draft)}
+        {inputFor(field, draft, question.title)}
         <button
           type="submit"
-          className="w-full rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover sm:w-fit"
+          className="min-h-12 w-full rounded-pill bg-accent-btn px-7 py-3 font-semibold text-accent-ink shadow-sm transition-[background-color,box-shadow] duration-200 hover:bg-accent-btn-hover hover:shadow-md sm:w-fit"
         >
           Continue
         </button>

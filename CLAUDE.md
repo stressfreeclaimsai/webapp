@@ -1,5 +1,11 @@
 # CLAUDE.md — StressFreeClaim.ai
 
+> Production-foundation branch: `PRODUCT.md` governs promotion work.
+> `constitution.md` and `mission/` remain authoritative for the preserved
+> prototype runtime and its regression behavior. Where production work
+> intentionally conflicts with a prototype prohibition, follow `PRODUCT.md`
+> and keep the prototype mode passing.
+
 This repo is the **StressFreeClaim.ai prototype**, built on the Foundry archetype: a single-user, customer-testable web prototype. You are building a **prototype, not a product** (see `constitution.md` §1).
 
 **What it is:** a homeowner, right after a hurricane, tells the app what happened in one sentence and trusts that someone will take the claim from there. The bet, the core loop, and the acceptance criteria are settled in `/mission/spec/spec.md`; the build plan is `/mission/architecture.md` and `/mission/packages/WP-*.md`. **Start at WP-1** and work the packages in order.

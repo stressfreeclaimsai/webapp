@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ITEM_LABELS, stateName } from "@/lib/claim-facts";
 import { draftFromCookieValue, draftMissing } from "@/lib/claims";
 import { readDraftCookie } from "@/lib/session";
+import { runtimeConfig } from "@/lib/runtime-config";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ const NEXT_STEPS = (insurer: string) => [
 const dateLong = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
 
 export default async function Done() {
+  const config = runtimeConfig();
   const draft = draftFromCookieValue(await readDraftCookie());
 
   // No draft at all — a calm, directional state, never a dead-end (AC-8).
@@ -82,29 +84,30 @@ export default async function Done() {
     <section className="pt-2 sm:pt-6">
       <div
         aria-hidden="true"
-        className="flex size-12 items-center justify-center rounded-pill bg-accent-soft text-accent"
+        className="flex size-12 items-center justify-center rounded-pill border border-accent/25 bg-accent-soft text-accent"
       >
         <svg viewBox="0 0 24 24" className="size-6 fill-current">
           <path d="M9.55 17.05 4.5 12l1.4-1.4 3.65 3.64 8.6-8.59 1.4 1.41-10 10Z" />
         </svg>
       </div>
       <h1 className="mt-5 text-balance font-display text-display">
-        You&rsquo;re all set, {firstName}.
+        {config.isPilot ? `We received it, ${firstName}.` : `You’re all set, ${firstName}.`}
       </h1>
       <p className="mt-3 leading-relaxed text-muted">
-        Your claim is started. Take a breath — from here, we take it. Here&rsquo;s a copy of what
-        you told us, and what happens next.
+        {config.isPilot
+          ? "A member of our team will review your information and contact you about next steps. This report has not been filed with your insurer."
+          : "Your claim is started. Take a breath — from here, we take it. Here’s a copy of what you told us, and what happens next."}
       </p>
 
       {/* Screenshot-able claim summary (WP-7 should-tier). */}
-      <div className="mt-8 rounded-card border border-border bg-surface-raised p-5 shadow-sm">
+      <div className="mt-8 rounded-card border border-border-strong bg-surface-raised p-5 shadow-[0_16px_38px_-28px_rgba(94,42,40,0.42)] sm:p-6">
         <div className="flex items-baseline justify-between gap-3 border-b border-border pb-3">
           <h2 className="font-medium">Your claim summary</h2>
           <span className="text-sm font-semibold text-warn">{reference}</span>
         </div>
         <dl className="mt-4 grid gap-2.5 text-sm">
           {summary.map(([label, value]) => (
-            <div key={label} className="grid grid-cols-[7.5rem_1fr] gap-3">
+            <div key={label} className="grid gap-0.5 border-b border-border pb-2.5 last:border-0 last:pb-0 sm:grid-cols-[8rem_1fr] sm:gap-3">
               <dt className="text-muted">{label}</dt>
               <dd className="font-medium">{value}</dd>
             </div>
@@ -113,8 +116,9 @@ export default async function Done() {
       </div>
 
       {/* The concierge promise — a non-functional preview, nothing more. */}
-      <h2 className="mt-10 text-eyebrow font-semibold uppercase text-warn">What happens next</h2>
-      <ol className="mt-4 grid gap-0">
+      {!config.isPilot && <>
+        <h2 className="mt-10 text-eyebrow font-semibold uppercase text-warn">What happens next</h2>
+        <ol className="mt-4 grid gap-0">
         {NEXT_STEPS(draft.insurerName!).map((step, i) => (
           <li key={step.title} className="relative flex gap-4 pb-8 last:pb-0">
             {i < 2 && (
@@ -132,10 +136,13 @@ export default async function Done() {
             </div>
           </li>
         ))}
-      </ol>
+        </ol>
+      </>}
 
       <p className="mt-8 border-t border-border pt-5 leading-relaxed text-muted">
-        You don&rsquo;t need to do anything else right now. We&rsquo;ll keep you posted at{" "}
+        {config.isPilot
+          ? "Keep this reference for your records. We’ll contact you at "
+          : "You don’t need to do anything else right now. We’ll keep you posted at "}
         <span className="font-medium text-ink">{draft.email}</span>.
       </p>
       <p className="mt-4 text-sm text-muted">

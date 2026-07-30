@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
-import { PrototypeBanner } from "@/components/prototype-banner";
+import { EnvironmentBanner } from "@/components/environment-banner";
+import { runtimeConfig } from "@/lib/runtime-config";
 import "./globals.css";
 
 // Identity typefaces (see globals.css for the rationale). Self-hosted by
@@ -18,11 +19,15 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "StressFreeClaim.ai",
-  description:
-    "Tell us what happened and we'll take it from there — the stress-free way to start a storm claim.",
-};
+export function generateMetadata(): Metadata {
+  const config = runtimeConfig();
+  return {
+    title: "StressFreeClaim.ai",
+    description: config.isPilot
+      ? "Tell us what happened. Our team will review your information and contact you about next steps."
+      : "Tell us what happened and we'll take it from there — the stress-free way to start a storm claim.",
+  };
+}
 
 export default function RootLayout({
   children,
@@ -30,8 +35,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
-        <PrototypeBanner />
-        <main className="mx-auto w-full max-w-[660px] px-5 py-8 sm:px-6 sm:py-10">{children}</main>
+        <EnvironmentBanner />
+        <main className="mx-auto w-full max-w-[700px] px-5 py-5 sm:px-7 sm:py-12">{children}</main>
       </body>
     </html>
   );

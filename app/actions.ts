@@ -22,6 +22,7 @@ import {
   type DraftPatch,
 } from "@/lib/claims";
 import { readDraftCookie, writeDraftCookie } from "@/lib/session";
+import { isStateEligibleForPilot, runtimeConfig } from "@/lib/runtime-config";
 
 /**
  * The route-facing server actions (WP-2/3/4/5). All domain logic lives in the
@@ -107,7 +108,11 @@ export async function answerGap(formData: FormData): Promise<void> {
 
   const field = String(formData.get("field") ?? "") as RequiredField;
   if ((REQUIRED_FIELDS as readonly string[]).includes(field)) {
-    await saveDraft(applyPatch(draft!, patchFor(field, formData)));
+    const updated = applyPatch(draft!, patchFor(field, formData));
+    await saveDraft(updated);
+    if (field === "stateOfLoss" && updated.stateOfLoss && !isStateEligibleForPilot(updated.stateOfLoss)) {
+      redirect("/unsupported");
+    }
   }
   redirect("/gaps");
 }
@@ -161,6 +166,13 @@ export async function confirmAndSubmit(formData: FormData): Promise<void> {
     damageDescription: text("damageDescription"),
   });
   await saveDraft(corrected);
+
+  if (corrected.stateOfLoss && !isStateEligibleForPilot(corrected.stateOfLoss)) {
+    redirect("/unsupported");
+  }
+  if (runtimeConfig().isPilot && String(formData.get("pilotConsent") ?? "") !== "accepted") {
+    redirect("/review?consent=required");
+  }
 
   try {
     const claim = await submitClaim(corrected);

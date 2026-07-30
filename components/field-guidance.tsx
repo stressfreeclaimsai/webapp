@@ -16,7 +16,10 @@ export const ISSUE_GUIDANCE: Record<FieldIssue, string> = {
 export function FieldGuidance({ issue }: { issue: FieldIssue | undefined }) {
   if (!issue) return null;
   return (
-    <p role="status" className="rounded-card bg-accent-soft px-3.5 py-2.5 text-sm leading-relaxed">
+    <p
+      role="alert"
+      className="rounded-control border border-accent/30 bg-accent-soft px-3.5 py-2.5 text-sm leading-relaxed text-ink"
+    >
       {ISSUE_GUIDANCE[issue]}
     </p>
   );

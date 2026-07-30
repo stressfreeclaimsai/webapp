@@ -23,11 +23,13 @@
   --color-surface: #fbf4ef; /* warm paper — page background */
   --color-surface-raised: #ffffff; /* cards, panels, inputs */
   --color-surface-2: #fdf7f2; /* quiet secondary panels */
+  --color-surface-deep: #f5e8df; /* paper edge / quiet selected surface */
   --color-ink: #2e2320; /* sans body/UI text — warm near-black */
   --color-ink-display: #5e2a28; /* oxblood — serif display headings */
   --color-muted: #7c6b62; /* secondary text */
   --color-faint: #b4a498; /* placeholders, tertiary text */
   --color-border: #efe1d6; /* hairlines, dividers */
+  --color-border-strong: #dfc9bb; /* interactive boundaries */
   --color-accent: #e0714c; /* bright coral — accents, dot, focus, glow */
   --color-accent-btn: #b84e2e; /* terracotta — button fills (AA w/ white) */
   --color-accent-btn-hover: #a5441f;
@@ -52,6 +54,7 @@
 
   /* — Radii ————————————————————————————————————————————————— */
   --radius-card: 1.375rem; /* 22px */
+  --radius-control: 0.875rem; /* 14px — fields read as controls, not cards */
   --radius-pill: 9999px;
 }
 
@@ -73,12 +76,20 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background: radial-gradient(
-      58% 60% at 50% 40%,
-      rgba(240, 182, 152, 0.5),
-      rgba(244, 214, 197, 0.22) 55%,
-      transparent 72%
-    );
+    background:
+      radial-gradient(
+        54% 48% at 50% 34%,
+        rgba(240, 182, 152, 0.32),
+        rgba(244, 214, 197, 0.12) 58%,
+        transparent 76%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(94, 42, 40, 0.012) 0,
+        rgba(94, 42, 40, 0.012) 1px,
+        transparent 1px,
+        transparent 4px
+      );
   }
 
   /* Serif display headings carry the oxblood ink. */
@@ -91,6 +102,19 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: 3px;
+  }
+
+  button,
+  a,
+  select,
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  input:not([type="checkbox"]),
+  select,
+  textarea {
+    font-size: 1rem;
   }
 }
 

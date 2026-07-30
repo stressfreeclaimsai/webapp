@@ -1,4 +1,13 @@
-# StressFreeClaim.ai — prototype
+# StressFreeClaim.ai
+
+The repository now has two tracks:
+
+- the validated prototype remains the default runtime and existing deployment;
+- the production-foundation branch promotes it toward a controlled private
+  pilot under [`PRODUCT.md`](./PRODUCT.md).
+
+External owner setup is tracked separately in
+[`product/EXTERNAL-APP-SETUP.md`](./product/EXTERNAL-APP-SETUP.md).
 
 A homeowner, right after a hurricane, tells the app what happened in one
 sentence — and trusts that someone will take the claim from there. Built on the

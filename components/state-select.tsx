@@ -10,18 +10,24 @@ export function StateSelect({
   name,
   selected,
   autoFocus,
+  id,
+  ariaLabel,
 }: {
   name: string;
   selected: StateCode | null;
   autoFocus?: boolean;
+  id?: string;
+  ariaLabel?: string;
 }) {
   return (
     <select
+      id={id}
       name={name}
+      aria-label={ariaLabel}
       required
       defaultValue={selected ?? ""}
       autoFocus={autoFocus}
-      className="w-full rounded-card border border-border bg-surface-raised p-3.5 leading-relaxed shadow-sm"
+      className="min-h-12 w-full rounded-control border border-border-strong bg-surface-raised px-4 py-3 leading-relaxed shadow-sm transition-[border-color,box-shadow] duration-200 focus:border-accent focus:ring-4 focus:ring-accent-soft"
     >
       <option value="" disabled>
         Choose a state…

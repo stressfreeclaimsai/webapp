@@ -5,6 +5,7 @@ import { ItemsCheckboxes } from "@/components/items-checkboxes";
 import { StateSelect } from "@/components/state-select";
 import { draftFromCookieValue, draftIssues, draftMissing } from "@/lib/claims";
 import { readDraftCookie } from "@/lib/session";
+import { runtimeConfig } from "@/lib/runtime-config";
 
 export const dynamic = "force-dynamic";
 
@@ -17,28 +18,60 @@ export const dynamic = "force-dynamic";
  */
 
 const inputClass =
-  "w-full rounded-card border border-border bg-surface-raised p-3.5 leading-relaxed shadow-sm";
+  "min-h-12 w-full rounded-control border border-border-strong bg-surface-raised px-4 py-3 leading-relaxed shadow-sm transition-[border-color,box-shadow] duration-200 focus:border-accent focus:ring-4 focus:ring-accent-soft";
 
 function Field({
   label,
   optional,
+  htmlFor,
   children,
 }: {
   label: string;
   optional?: boolean;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
+  const labelContent = (
+    <>
+      {label} {optional && <span className="font-normal text-muted">(optional)</span>}
+    </>
+  );
   return (
     <div className="grid gap-1.5">
-      <span className="font-medium">
-        {label} {optional && <span className="font-normal text-muted">(optional)</span>}
-      </span>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className="font-medium">{labelContent}</label>
+      ) : (
+        <span className="font-medium">{labelContent}</span>
+      )}
       {children}
     </div>
   );
 }
 
-export default async function Review() {
+function ReviewSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="grid gap-5 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6">
+      <h2 className="border-b border-border pb-3 font-display text-xl font-semibold text-ink-display">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+export default async function Review({
+  searchParams,
+}: {
+  searchParams: Promise<{ consent?: string }>;
+}) {
+  const config = runtimeConfig();
+  const query = await searchParams;
   const draft = draftFromCookieValue(await readDraftCookie());
   if (!draft) redirect("/");
   if (draft.submittedClaimId) redirect("/done");
@@ -55,8 +88,10 @@ export default async function Review() {
       </p>
 
       <form action={confirmAndSubmit} className="mt-7 grid gap-5">
-        <Field label="Your name">
+        <ReviewSection title="About you">
+        <Field label="Your name" htmlFor="fullName">
           <input
+            id="fullName"
             name="fullName"
             type="text"
             required
@@ -64,8 +99,33 @@ export default async function Review() {
             className={inputClass}
           />
         </Field>
-        <Field label="Property address">
+        <Field label="Phone" htmlFor="phone">
           <input
+            id="phone"
+            name="phone"
+            type="tel"
+            required
+            defaultValue={draft.phone ?? ""}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Email" htmlFor="email">
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            defaultValue={draft.email ?? ""}
+            className={inputClass}
+          />
+          <FieldGuidance issue={issueFor("email")} />
+        </Field>
+        </ReviewSection>
+
+        <ReviewSection title="Loss details">
+        <Field label="Property address" htmlFor="propertyAddress">
+          <input
+            id="propertyAddress"
             name="propertyAddress"
             type="text"
             required
@@ -73,11 +133,12 @@ export default async function Review() {
             className={inputClass}
           />
         </Field>
-        <Field label="State the property is in">
-          <StateSelect name="stateOfLoss" selected={draft.stateOfLoss} />
+        <Field label="State the property is in" htmlFor="stateOfLoss">
+          <StateSelect id="stateOfLoss" name="stateOfLoss" selected={draft.stateOfLoss} />
         </Field>
-        <Field label="Date of loss">
+        <Field label="Date of loss" htmlFor="dateOfLoss">
           <input
+            id="dateOfLoss"
             name="dateOfLoss"
             type="date"
             required
@@ -86,8 +147,9 @@ export default async function Review() {
           />
           <FieldGuidance issue={issueFor("dateOfLoss")} />
         </Field>
-        <Field label="Insurance company">
+        <Field label="Insurance company" htmlFor="insurerName">
           <input
+            id="insurerName"
             name="insurerName"
             type="text"
             required
@@ -98,55 +160,67 @@ export default async function Review() {
         <Field label="What was damaged">
           <ItemsCheckboxes selected={draft.itemsDamaged} />
         </Field>
-        <Field label="Damage, in your own words" optional>
+        <Field label="Damage, in your own words" optional htmlFor="damageDescription">
           {/* Forgiving surface (B21): free text, never blocks, no validation —
               the human-correction net for the LLM-fillable field (B20). */}
           <textarea
+            id="damageDescription"
             name="damageDescription"
             rows={3}
             defaultValue={draft.damageDescription ?? ""}
             className={`${inputClass} resize-y`}
           />
         </Field>
-        <Field label="Phone">
+        </ReviewSection>
+
+        <ReviewSection title="Policy details">
+        <Field label="Policy number" optional htmlFor="policyNumber">
           <input
-            name="phone"
-            type="tel"
-            required
-            defaultValue={draft.phone ?? ""}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Email">
-          <input
-            name="email"
-            type="email"
-            required
-            defaultValue={draft.email ?? ""}
-            className={inputClass}
-          />
-          <FieldGuidance issue={issueFor("email")} />
-        </Field>
-        <Field label="Policy number" optional>
-          <input
+            id="policyNumber"
             name="policyNumber"
             type="text"
             defaultValue={draft.policyNumber ?? ""}
             className={inputClass}
           />
         </Field>
-        <Field label="Deductible" optional>
+        <Field label="Deductible" optional htmlFor="deductible">
           <input
+            id="deductible"
             name="deductible"
             type="text"
             defaultValue={draft.deductible ?? ""}
             className={inputClass}
           />
         </Field>
+        </ReviewSection>
+
+        {config.isPilot && (
+          <div className="rounded-card border border-border bg-surface-2 p-4">
+            <label className="flex items-start gap-3 leading-relaxed">
+              <input
+                type="checkbox"
+                name="pilotConsent"
+                value="accepted"
+                required
+                className="mt-1 size-4 shrink-0"
+              />
+              <span>
+                I confirm this information is accurate and agree that the team may contact me about
+                this loss report. Submitting this form does not file an insurance claim or create a
+                representation or repair agreement.
+              </span>
+            </label>
+            {query.consent === "required" && (
+              <p className="mt-2 text-sm font-medium text-warn" role="alert">
+                Please confirm before submitting.
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           type="submit"
-          className="mt-2 w-full rounded-pill bg-accent-btn px-7 py-3.5 font-semibold text-accent-ink transition-colors hover:bg-accent-btn-hover"
+          className="mt-2 min-h-12 w-full rounded-pill bg-accent-btn px-7 py-3 font-semibold text-accent-ink shadow-sm transition-[background-color,box-shadow] duration-200 hover:bg-accent-btn-hover hover:shadow-md"
         >
           Everything&rsquo;s right — start my claim
         </button>
