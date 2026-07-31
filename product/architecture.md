@@ -25,6 +25,15 @@ credentials, email domains, monitoring projects, and URLs.
 - Transactional email with idempotency keys, delivery events, and retry state.
 - Error monitoring and structured logs with personal-data redaction.
 
+## Foundation status
+
+- Local PostgreSQL 16 is reproducible through `docker-compose.yml`.
+- The initial Prisma migration contains the complete private-pilot data model.
+- Development and acceptance tests use separate PostgreSQL schemas.
+- The original prototype branch/deployment remains unchanged.
+- Server-side draft token wiring, staff authentication, and provider
+  integrations remain gated follow-on work.
+
 ## Runtime modes
 
 - `prototype` is the default and preserves the existing demo behavior.
@@ -35,8 +44,8 @@ credentials, email domains, monitoring projects, and URLs.
 
 ## Migration order
 
-1. Provision isolated external services.
-2. Add PostgreSQL schema and migrations.
+1. Add local PostgreSQL schema and migrations. **Complete.**
+2. Provision isolated company-owned external services.
 3. Replace the personal-data draft cookie with an opaque token and server-side
    draft.
 4. Add staff authentication and authorization.
@@ -44,4 +53,3 @@ credentials, email domains, monitoring projects, and URLs.
 6. Add idempotent notifications and delivery visibility.
 7. Pass security, restore, accessibility, and operations gates.
 8. Enable pilot mode for counsel-approved states only.
-

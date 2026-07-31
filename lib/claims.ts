@@ -1,9 +1,10 @@
+import { randomBytes, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
+import { CURRENT_INTAKE_VERSION } from "@/lib/production-domain";
 import {
   ITEMS_DAMAGED,
   isStateCode,
   missingRequired,
-  serializeItems,
   validateDateOfLoss,
   validateEmail,
   type FieldIssue,
@@ -14,18 +15,15 @@ import {
 import type { Claim } from "@prisma/client";
 
 /**
- * Shared contracts, part 2 (WP-1): the draft state, its cookie
- * (de)serialization, gap derivation, and the server-authoritative submit
- * (architecture §5 / decisions A3, B13). Every screen consumes these; no
- * screen re-implements them or trusts the client's *conclusions* — the draft
- * travels in an httpOnly cookie, but completeness is always re-derived and
- * re-validated server-side. The raw utterance is never stored (decision A5).
+ * Transitional shared intake contract: the proven prototype still keeps its
+ * draft state in an httpOnly cookie while the PostgreSQL ClaimDraft model and
+ * opaque-token migration are built as the next workstream.
  *
- * Why a cookie and not a ClaimDraft row (B13): on serverless hosting each
- * invocation sees its own copy of the SQLite file, so a row written by one
- * request is invisible to the next. The cookie rides along with every
- * request, which also preserves the reload-safety the founder's no-power
- * scenario demands. The demo Claim row is still written at submit (AC-6).
+ * This module still owns gap derivation and server-authoritative submit. No
+ * screen trusts client conclusions, and the raw utterance is never stored.
+ * ClaimDraft is deliberately not wired into the request path in this change:
+ * separating that migration preserves the validated prototype behavior while
+ * the durable model is reviewed and tested.
  */
 
 export type ClaimDraftState = {
@@ -39,7 +37,7 @@ export type ClaimDraftState = {
   email: string | null;
   policyNumber: string | null;
   deductible: string | null;
-  /** Free-text damage summary (B20) — capture-only, written to Claim.notes. */
+  /** Free-text damage summary, frozen into the submitted claim snapshot. */
   damageDescription: string | null;
   optionalsOffered: boolean;
   /** Set once submitClaim succeeds; freezes the flow at /done. */
@@ -193,12 +191,13 @@ export async function submitClaim(draft: ClaimDraftState): Promise<Claim> {
   const issues = draftIssues(draft);
   if (issues.length > 0) throw new ImplausibleDraftError(issues);
 
-  // The single seeded demo homeowner anchors every demo claim (constitution §2).
-  const homeowner = await prisma.homeowner.findFirst();
-  if (!homeowner) throw new Error("No seeded homeowner — run `npm run seed`.");
-
   return prisma.claim.create({
     data: {
+      referenceCode: `SFC-${randomBytes(4).toString("hex").toUpperCase()}`,
+      submissionKey: randomUUID(),
+      intakeVersion: CURRENT_INTAKE_VERSION,
+      source: "web_intake",
+      status: "new",
       claimantName: draft.fullName!,
       propertyAddress: draft.propertyAddress!,
       stateOfLoss: draft.stateOfLoss!,
@@ -208,9 +207,9 @@ export async function submitClaim(draft: ClaimDraftState): Promise<Claim> {
       policyNumber: draft.policyNumber,
       deductible: draft.deductible,
       dateOfLoss: draft.dateOfLoss!,
-      itemsDamaged: serializeItems(draft.itemsDamaged),
-      notes: draft.damageDescription ?? "",
-      homeownerId: homeowner.id,
+      itemsDamaged: draft.itemsDamaged,
+      damageDescription: draft.damageDescription ?? "",
+      extraFields: {},
     },
   });
 }

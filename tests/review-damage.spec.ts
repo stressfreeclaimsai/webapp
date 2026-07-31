@@ -1,12 +1,11 @@
-import { execSync } from "node:child_process";
+import { PrismaClient } from "@prisma/client";
 import { test as base, expect, type Page } from "@playwright/test";
 
 /**
  * B21 — damageDescription is editable on /review and persists to Claim.notes
  * through the same confirm-and-submit path as every other correction. The
- * bar is "editable and persists", so these tests read the persisted record
- * (sqlite3 CLI — Node builtins are safe here; only local TS imports trip the
- * Playwright 1.61 sync-ESM bug, see claim-flow.spec.ts).
+ * bar is "editable and persists", so these tests read the submitted PostgreSQL
+ * snapshot directly through the generated Prisma client.
  *
  * Same inline console/network guard as the other specs.
  */
@@ -37,12 +36,17 @@ const test = base.extend<{ failOnError: void }>({
   ],
 });
 
-/** notes column of the most recently filed claim (tests run serially). */
-function latestClaimNotes(): string {
-  return execSync(
-    `sqlite3 prisma/dev.db "SELECT notes FROM Claim ORDER BY createdAt DESC LIMIT 1;"`,
-    { encoding: "utf8" },
-  ).trim();
+const prisma = new PrismaClient();
+
+test.afterAll(async () => {
+  await prisma.$disconnect();
+});
+
+/** Homeowner-confirmed damage description on the newest submitted claim. */
+async function latestDamageDescription(): Promise<string> {
+  const claim = await prisma.claim.findFirst({ orderBy: { createdAt: "desc" } });
+  if (!claim) throw new Error("Expected a submitted claim.");
+  return claim.damageDescription;
 }
 
 async function startWithUtterance(page: Page, utterance: string) {
@@ -66,7 +70,7 @@ async function skipOptionalsToReview(page: Page) {
   await page.waitForURL("**/review");
 }
 
-test("[B21] damage description renders pre-filled and the EDITED text persists to Claim.notes", async ({
+test("[B21] damage description renders pre-filled and the EDITED text persists to the claim snapshot", async ({
   page,
 }) => {
   await startWithUtterance(page, completeUtterance("(239) 555-0151", "b21a.demo@example.com"));
@@ -82,10 +86,10 @@ test("[B21] damage description renders pre-filled and the EDITED text persists t
   await page.getByRole("button", { name: /everything.s right/i }).click();
   await page.waitForURL("**/done");
 
-  expect(latestClaimNotes()).toBe(edited);
+  expect(await latestDamageDescription()).toBe(edited);
 });
 
-test("[B21] clearing the damage description still submits and persists empty notes", async ({
+test("[B21] clearing the damage description still submits and persists an empty snapshot field", async ({
   page,
 }) => {
   await startWithUtterance(page, completeUtterance("(239) 555-0152", "b21b.demo@example.com"));
@@ -98,5 +102,5 @@ test("[B21] clearing the damage description still submits and persists empty not
   await page.waitForURL("**/done");
   await expect(page.getByRole("heading", { name: /you.re all set/i })).toBeVisible();
 
-  expect(latestClaimNotes()).toBe("");
+  expect(await latestDamageDescription()).toBe("");
 });

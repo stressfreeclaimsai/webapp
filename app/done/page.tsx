@@ -14,9 +14,10 @@ export const dynamic = "force-dynamic";
  * inspection, an approved contractor repairs. Nothing is scheduled, sent, or
  * contracted; nothing leaves the app. No fee language anywhere (settled Won't).
  *
- * Renders from the submitted cookie snapshot (B13): the demo Claim row was
- * written by submitClaim, but on serverless hosting a cross-request DB read
- * is not dependable, and the confirmation must never be.
+ * This milestone still renders from the submitted cookie snapshot so changing
+ * the database substrate does not silently change the validated intake UX.
+ * The next workstream replaces that cookie payload with an opaque token and a
+ * durable ClaimDraft read.
  */
 
 const NEXT_STEPS = (insurer: string) => [

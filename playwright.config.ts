@@ -1,13 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Acceptance-criteria tests run against the dev server. globalSetup seeds the
-// throwaway database first, so `npm run test` and `npm run verify` both work
-// standalone. The JSON report is consumed by scripts/verify.ts to print the
-// pass/fail table keyed to acceptance criteria.
+const LOCAL_TEST_DATABASE_URL =
+  process.env.TEST_DATABASE_URL ??
+  "postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=test";
+
+// Acceptance-criteria tests run against an isolated PostgreSQL schema.
+// globalSetup resets and seeds it before the suite; the development schema is
+// never touched by test runs.
 export default defineConfig({
   testDir: "./tests",
-  // Serial on purpose: the acceptance flows share one throwaway SQLite file
-  // and a dev server; parallel workers invite lock contention, not speed.
+  // Serial preserves the deterministic seeded scenario and newest-claim checks.
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
@@ -29,6 +31,11 @@ export default defineConfig({
     // the timeout/malformed/merge guards through the real UI with no network
     // and no API key. NOTE: with reuseExistingServer, a dev server started
     // outside Playwright won't have this flag — stop it before `npm test`.
-    env: { ...process.env, EXTRACTION_LLM_STUB: "1" },
+    env: {
+      ...process.env,
+      DATABASE_URL: LOCAL_TEST_DATABASE_URL,
+      DIRECT_URL: LOCAL_TEST_DATABASE_URL,
+      EXTRACTION_LLM_STUB: "1",
+    },
   },
 });

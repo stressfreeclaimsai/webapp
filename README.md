@@ -19,18 +19,19 @@ Read [`constitution.md`](./constitution.md) (the non-negotiables) and
 [`CLAUDE.md`](./CLAUDE.md) (workflow) first; the spec pack in
 [`mission/spec/`](./mission/spec/) is the source of truth.
 
-## Stack (locked — constitution §3)
+## Stack
 
-Next.js (App Router) · TypeScript (strict) · Tailwind v4 · Prisma + SQLite
-(throwaway data) · Playwright · Vercel. Single seeded demo user, **no auth**.
+Next.js (App Router) · TypeScript (strict) · Tailwind v4 · Prisma +
+PostgreSQL 16 · Playwright · Vercel. Authentication remains deliberately
+unwired until the company-owned provider is selected.
 
 ## Setup
 
 ```bash
 npm install                      # installs deps + generates the Prisma client
 npx playwright install chromium  # one-time: browser for tests/verify
-cp .env.example .env             # local SQLite connection string
-npm run seed                     # reset + populate the demo data
+cp .env.example .env             # local Docker PostgreSQL connection strings
+npm run db:setup                 # start PostgreSQL, migrate, seed synthetic data
 npm run dev                      # http://localhost:3000
 ```
 
@@ -40,7 +41,11 @@ npm run dev                      # http://localhost:3000
 | ------------------- | ------------------------------------------------------------------- |
 | `npm run dev`       | Local dev server                                                    |
 | `npm run build`     | Generate Prisma client + production build                           |
-| `npm run seed`      | Reset + repopulate throwaway demo data (guarded to local SQLite)    |
+| `npm run db:up`     | Start the isolated PostgreSQL 16 container                          |
+| `npm run db:down`   | Stop the local container without deleting its named volume          |
+| `npm run db:migrate`| Create/apply a development migration                                |
+| `npm run db:setup`  | Start PostgreSQL, migrate, and seed                                 |
+| `npm run seed`      | Reset + repopulate synthetic data; refuses non-local databases      |
 | `npm run verify`    | Run acceptance tests, capture errors/screenshots, print a pass/fail table |
 | `npm run test`      | Playwright tests                                                    |
 | `npm run typecheck` | `tsc` strict, no emit                                               |
@@ -52,10 +57,11 @@ npm run dev                      # http://localhost:3000
 /app            Next.js App Router routes + globals.css (design tokens)
 /components     UI components (consume @theme tokens — no ad-hoc values)
 /lib            domain logic, Prisma client
-/prisma         schema.prisma + seed.ts (defines ALL data)
+/prisma         PostgreSQL schema, migrations, and synthetic seed
 /scripts        tooling: env helpers, the /verify harness
 /tests          Playwright specs, keyed to acceptance criteria ([AC-n])
 /mission/spec   the spec pack (source of truth)
+/product        production architecture, data model, and owner setup
 ```
 
 ## Per-project customization
@@ -64,7 +70,12 @@ npm run dev                      # http://localhost:3000
   [`app/globals.css`](./app/globals.css) — swap the tokens to re-skin. The current
   values are derived from `mission/spec/look-and-feel.md` (calm · reassuring ·
   effortless · plain-spoken).
-- **Entities** (`Homeowner`, `Claim`, `ClaimDraft`) in
-  [`prisma/schema.prisma`](./prisma/schema.prisma) follow
-  `mission/spec/data-model-hints.md`; extraction and gap-derivation contracts
-  live in [`lib/claim-facts.ts`](./lib/claim-facts.ts).
+- **Production entities** live in
+  [`prisma/schema.prisma`](./prisma/schema.prisma). Extension rules and
+  relationship rationale are documented in
+  [`product/data-model.md`](./product/data-model.md).
+- **Workflow vocabularies** live in
+  [`lib/production-domain.ts`](./lib/production-domain.ts), avoiding database
+  enum migrations for additive feedback-driven changes.
+- Extraction and gap-derivation contracts remain in
+  [`lib/claim-facts.ts`](./lib/claim-facts.ts).

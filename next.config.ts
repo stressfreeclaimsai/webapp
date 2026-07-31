@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   // Bundle the build-time seeded SQLite file into every route's serverless
   // function on Vercel; lib/db.ts copies it to /tmp (the writable path) on
   // cold start. See open-decisions.md B12.
-  outputFileTracingIncludes: {
-    "/**": ["./prisma/dev.db"],
-  },
   async headers() {
     return [
       {
