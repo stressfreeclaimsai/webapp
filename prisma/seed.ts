@@ -62,10 +62,55 @@ async function main() {
       deductible: null,
       dateOfLoss: new Date(Date.UTC(2025, 8, 15, 12)),
       itemsDamaged: ["roof", "window"],
-      damageDescription:
-        "Hurricane came through overnight. Roof and two windows damaged.",
+      damageDescription: "Hurricane came through overnight. Roof and two windows damaged.",
       extraFields: {},
       submittedAt: new Date(Date.UTC(2025, 8, 16, 14)),
+    },
+  });
+
+  const reviewingClaim = await prisma.claim.create({
+    data: {
+      referenceCode: "SFC-DEMO02",
+      submissionKey: "seed:reviewing-demo",
+      intakeVersion: CURRENT_INTAKE_VERSION,
+      source: "synthetic_seed",
+      status: "reviewing",
+      claimantName: "Sandra Ortiz",
+      propertyAddress: "1832 Del Prado Blvd S, Cape Coral, FL",
+      stateOfLoss: "FL",
+      phone: "(239) 555-0162",
+      email: "sandra.demo@example.com",
+      insurerName: "Universal Property",
+      policyNumber: "DEMO-UP-4821",
+      deductible: "$5,000",
+      dateOfLoss: new Date(Date.UTC(2025, 8, 16, 12)),
+      itemsDamaged: ["siding", "drywall"],
+      damageDescription: "Wind pulled siding loose and rain reached the living room wall.",
+      extraFields: {},
+      submittedAt: new Date(Date.UTC(2025, 8, 17, 15, 30)),
+    },
+  });
+
+  const unassignedClaim = await prisma.claim.create({
+    data: {
+      referenceCode: "SFC-DEMO03",
+      submissionKey: "seed:unassigned-demo",
+      intakeVersion: CURRENT_INTAKE_VERSION,
+      source: "synthetic_seed",
+      status: "new",
+      claimantName: "Jamie Chen",
+      propertyAddress: "409 Wrightsville Ave, Wilmington, NC",
+      stateOfLoss: "NC",
+      phone: "(910) 555-0137",
+      email: "jamie.demo@example.com",
+      insurerName: "State Farm",
+      policyNumber: null,
+      deductible: null,
+      dateOfLoss: new Date(Date.UTC(2025, 8, 17, 12)),
+      itemsDamaged: ["roof", "contents"],
+      damageDescription: "A tree limb opened the roof and water damaged bedroom contents.",
+      extraFields: {},
+      submittedAt: new Date(Date.UTC(2025, 8, 18, 13, 15)),
     },
   });
 
@@ -73,6 +118,13 @@ async function main() {
     prisma.claimAssignment.create({
       data: {
         claimId: claim.id,
+        assigneeId: staffUser.id,
+        assignedById: staffUser.id,
+      },
+    }),
+    prisma.claimAssignment.create({
+      data: {
+        claimId: reviewingClaim.id,
         assigneeId: staffUser.id,
         assignedById: staffUser.id,
       },
@@ -94,6 +146,26 @@ async function main() {
         metadata: { synthetic: true, intakeVersion: CURRENT_INTAKE_VERSION },
       },
     }),
+    prisma.auditEvent.create({
+      data: {
+        claimId: reviewingClaim.id,
+        actorType: "system",
+        action: "claim.seeded",
+        entityType: "claim",
+        entityId: reviewingClaim.id,
+        metadata: { synthetic: true, intakeVersion: CURRENT_INTAKE_VERSION },
+      },
+    }),
+    prisma.auditEvent.create({
+      data: {
+        claimId: unassignedClaim.id,
+        actorType: "system",
+        action: "claim.seeded",
+        entityType: "claim",
+        entityId: unassignedClaim.id,
+        metadata: { synthetic: true, intakeVersion: CURRENT_INTAKE_VERSION },
+      },
+    }),
     prisma.notificationDelivery.create({
       data: {
         claimId: claim.id,
@@ -109,7 +181,7 @@ async function main() {
   ]);
 
   console.log(
-    `✓ Seeded ${claim.referenceCode}, one staff user, assignment, note, audit event, and notification preview.`,
+    `✓ Seeded three synthetic claims, one staff user, two assignments, notes, audit events, and a notification preview.`,
   );
 }
 

@@ -12,16 +12,22 @@ import {
 import { extractClaimFacts } from "@/lib/extraction";
 import {
   applyPatch,
-  draftFromCookieValue,
-  draftToCookieValue,
   emptyDraft,
-  submitClaim,
   ImplausibleDraftError,
   IncompleteDraftError,
   type ClaimDraftState,
   type DraftPatch,
 } from "@/lib/claims";
-import { readDraftCookie, writeDraftCookie } from "@/lib/session";
+import {
+  abandonDraft,
+  createDraft,
+  DraftExpiredError,
+  DraftNotFoundError,
+  lookupDraft,
+  submitDraft,
+  updateDraft,
+} from "@/lib/drafts";
+import { clearDraftToken, readDraftToken, writeDraftToken } from "@/lib/session";
 import { isStateEligibleForPilot, runtimeConfig } from "@/lib/runtime-config";
 
 /**
@@ -32,12 +38,24 @@ import { isStateEligibleForPilot, runtimeConfig } from "@/lib/runtime-config";
  * that asks plainly.
  */
 
-async function loadDraft(): Promise<ClaimDraftState | null> {
-  return draftFromCookieValue(await readDraftCookie());
+async function loadActiveDraft(): Promise<{ token: string; draft: ClaimDraftState }> {
+  const token = await readDraftToken();
+  const lookup = await lookupDraft(token);
+  if (lookup.kind === "submitted") redirect("/done");
+  if (lookup.kind === "expired") {
+    await clearDraftToken();
+    redirect("/?draft=expired");
+  }
+  if (lookup.kind === "missing" || !token) redirect("/");
+  return { token, draft: lookup.draft.state };
 }
 
-async function saveDraft(draft: ClaimDraftState): Promise<void> {
-  await writeDraftCookie(draftToCookieValue(draft));
+async function saveActiveDraft(token: string, draft: ClaimDraftState): Promise<void> {
+  if (await updateDraft(token, draft)) return;
+  const lookup = await lookupDraft(token);
+  if (lookup.kind === "submitted") redirect("/done");
+  await clearDraftToken();
+  redirect("/?draft=expired");
 }
 
 function parseDateInput(value: string): Date | null {
@@ -96,21 +114,25 @@ export async function startClaim(formData: FormData): Promise<void> {
     delete facts.dateOfLoss;
   }
 
-  await saveDraft(applyPatch(emptyDraft(), facts));
+  await abandonDraft(await readDraftToken());
+  const created = await createDraft(applyPatch(emptyDraft(), facts));
+  await writeDraftToken(created.token);
   redirect("/gaps");
 }
 
 /** WP-3: save one answered gap, then let /gaps re-derive what's still needed. */
 export async function answerGap(formData: FormData): Promise<void> {
-  const draft = await loadDraft();
-  if (!draft) redirect("/");
-  if (draft!.submittedClaimId) redirect("/done");
+  const { token, draft } = await loadActiveDraft();
 
   const field = String(formData.get("field") ?? "") as RequiredField;
   if ((REQUIRED_FIELDS as readonly string[]).includes(field)) {
-    const updated = applyPatch(draft!, patchFor(field, formData));
-    await saveDraft(updated);
-    if (field === "stateOfLoss" && updated.stateOfLoss && !isStateEligibleForPilot(updated.stateOfLoss)) {
+    const updated = applyPatch(draft, patchFor(field, formData));
+    await saveActiveDraft(token, updated);
+    if (
+      field === "stateOfLoss" &&
+      updated.stateOfLoss &&
+      !isStateEligibleForPilot(updated.stateOfLoss)
+    ) {
       redirect("/unsupported");
     }
   }
@@ -123,34 +145,30 @@ export async function answerGap(formData: FormData): Promise<void> {
  * straight on to review (AC-3).
  */
 export async function saveOptionals(formData: FormData): Promise<void> {
-  const draft = await loadDraft();
-  if (!draft) redirect("/");
-  if (draft!.submittedClaimId) redirect("/done");
+  const { token, draft } = await loadActiveDraft();
 
   const patch: DraftPatch = { optionalsOffered: true };
   if (String(formData.get("intent") ?? "") !== "skip") {
     patch.policyNumber = String(formData.get("policyNumber") ?? "").trim() || null;
     patch.deductible = String(formData.get("deductible") ?? "").trim() || null;
   }
-  await saveDraft(applyPatch(draft!, patch));
+  await saveActiveDraft(token, applyPatch(draft, patch));
   redirect("/review");
 }
 
 /**
  * WP-4 → WP-5: persist any corrections made on review, then submit.
- * `submitClaim` re-validates completeness server-side (decision A3); if
+ * `submitDraft` re-validates completeness server-side (decision A3); if
  * anything required is somehow missing, the flow falls back to gap-filling
- * instead of dead-ending (AC-8). The submitted snapshot is frozen into the
- * cookie so /done renders it regardless of which instance answers (B13).
+ * instead of dead-ending (AC-8). PostgreSQL atomically freezes the submitted
+ * snapshot and /done reads it through the same opaque continuation token.
  */
 export async function confirmAndSubmit(formData: FormData): Promise<void> {
-  const draft = await loadDraft();
-  if (!draft) redirect("/");
-  if (draft!.submittedClaimId) redirect("/done");
+  const { token, draft } = await loadActiveDraft();
 
   const text = (name: string) => String(formData.get(name) ?? "").trim() || null;
   const stateRaw = String(formData.get("stateOfLoss") ?? "");
-  const corrected = applyPatch(draft!, {
+  const corrected = applyPatch(draft, {
     fullName: text("fullName"),
     propertyAddress: text("propertyAddress"),
     // A non-enum state (B16) clears the field, so submit re-routes to the gap
@@ -165,7 +183,7 @@ export async function confirmAndSubmit(formData: FormData): Promise<void> {
     deductible: text("deductible"),
     damageDescription: text("damageDescription"),
   });
-  await saveDraft(corrected);
+  await saveActiveDraft(token, corrected);
 
   if (corrected.stateOfLoss && !isStateEligibleForPilot(corrected.stateOfLoss)) {
     redirect("/unsupported");
@@ -175,13 +193,16 @@ export async function confirmAndSubmit(formData: FormData): Promise<void> {
   }
 
   try {
-    const claim = await submitClaim(corrected);
-    await saveDraft({ ...corrected, submittedClaimId: claim.id });
+    await submitDraft(token, corrected);
   } catch (error) {
     if (error instanceof IncompleteDraftError) redirect("/gaps");
     // Implausible values (B14/B15) stay in the saved draft, so /review
     // re-renders with the typed input kept and inline guidance (never-trap).
     if (error instanceof ImplausibleDraftError) redirect("/review");
+    if (error instanceof DraftExpiredError || error instanceof DraftNotFoundError) {
+      await clearDraftToken();
+      redirect("/?draft=expired");
+    }
     throw error;
   }
   redirect("/done");

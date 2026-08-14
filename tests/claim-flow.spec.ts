@@ -76,7 +76,8 @@ async function founderFlowToReview(page: Page) {
   await page.waitForURL("**/review");
 }
 
-const AUTH_OR_PAYMENT = /\b(log ?in|sign ?in|sign ?up|password|create account|checkout|credit card)\b/i;
+const AUTH_OR_PAYMENT =
+  /\b(log ?in|sign ?in|sign ?up|password|create account|checkout|credit card)\b/i;
 const GATED_LANGUAGE = /\b(fee|waiver|waived|contract|signature|e-sign|sign here|crm)\b/i;
 
 test("[AC-1] welcome shows the greeting and a single clear way to begin", async ({ page }) => {
@@ -85,6 +86,11 @@ test("[AC-1] welcome shows the greeting and a single clear way to begin", async 
   await expect(
     page.getByRole("heading", { name: /tell me what happened, and we.ll take it from there/i }),
   ).toBeVisible();
+  await expect(page.getByText(/in your own words, a sentence is plenty/i)).toBeVisible();
+  await expect(page.getByText(/one sentence is enough/i)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "A calmer way to start" })).toBeVisible();
+  await expect(page.getByText("No account required")).toBeVisible();
+  await expect(page.getByText("This intake does not submit directly to an insurer.")).toBeVisible();
 
   // Exactly one way to begin: one free-text box, one start button.
   await expect(page.locator("textarea")).toHaveCount(1);
@@ -184,7 +190,16 @@ test("[AC-5] review shows everything captured and corrections persist downstream
   await expect(page.getByRole("heading", { name: /here.s what we have/i })).toBeVisible();
 
   // Everything captured is visible and editable.
-  for (const name of ["fullName", "propertyAddress", "dateOfLoss", "insurerName", "phone", "email", "policyNumber", "deductible"]) {
+  for (const name of [
+    "fullName",
+    "propertyAddress",
+    "dateOfLoss",
+    "insurerName",
+    "phone",
+    "email",
+    "policyNumber",
+    "deductible",
+  ]) {
     await expect(page.locator(`input[name="${name}"]`)).toBeVisible();
   }
   await page.screenshot({ path: "test-results/screenshots/03-review.png", fullPage: true });

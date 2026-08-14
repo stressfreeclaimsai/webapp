@@ -10,6 +10,7 @@
     "db:up": "docker compose up -d --wait postgres",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
+    "db:cleanup": "tsx scripts/cleanup-expired-drafts.ts",
     "db:setup": "npm run db:up && npm run db:migrate && npm run seed",
     "seed": "tsx prisma/seed.ts",
     "vercel-build": "npm run build",

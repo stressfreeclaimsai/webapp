@@ -22,13 +22,10 @@ export const CLAIM_STATUSES = [
 ] as const;
 export type ClaimStatus = (typeof CLAIM_STATUSES)[number];
 
-export const STAFF_ROLES = ["reviewer", "manager", "admin"] as const;
+export const STAFF_ROLES = ["standard", "admin"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
-export const NOTIFICATION_KINDS = [
-  "homeowner_submission_receipt",
-  "staff_new_intake",
-] as const;
+export const NOTIFICATION_KINDS = ["homeowner_submission_receipt", "staff_new_intake"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export const NOTIFICATION_STATUSES = [

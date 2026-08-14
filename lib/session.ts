@@ -1,32 +1,41 @@
 import { cookies } from "next/headers";
 
 /**
- * The demo-draft cookie (decisions A6 → B13): the in-progress claim draft
- * itself, stored as base64url JSON in an httpOnly cookie. It is NOT auth —
- * it carries no identity and enforces nothing; it exists so the draft
- * survives a reload, a dropped connection, or a dying battery (the founder's
- * core scenario), and so the flow works on serverless hosting where nothing
- * written to one instance's disk is visible to the next request (B13).
- *
- * Cookie writes happen only inside server actions (Next.js constraint);
- * pages read via readDraftCookie().
+ * The browser holds only a high-entropy opaque continuation token. Claim facts
+ * and personal information live exclusively in PostgreSQL ClaimDraft rows.
  */
 export const DRAFT_COOKIE = "sfc-demo-draft";
+export const DRAFT_TOKEN_BYTES = 32;
+export const DRAFT_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // a week — long enough to ride out the storm
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
-export async function readDraftCookie(): Promise<string | null> {
+export function isDraftToken(value: string | null): value is string {
+  return typeof value === "string" && TOKEN_PATTERN.test(value);
+}
+
+export async function readDraftToken(): Promise<string | null> {
   const jar = await cookies();
-  return jar.get(DRAFT_COOKIE)?.value ?? null;
+  const value = jar.get(DRAFT_COOKIE)?.value ?? null;
+  return isDraftToken(value) ? value : null;
 }
 
 /** Server actions only. */
-export async function writeDraftCookie(value: string): Promise<void> {
+export async function writeDraftToken(value: string): Promise<void> {
+  if (!isDraftToken(value)) throw new Error("Refusing to write a malformed draft token.");
   const jar = await cookies();
   jar.set(DRAFT_COOKIE, value, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: MAX_AGE_SECONDS,
+    maxAge: DRAFT_MAX_AGE_SECONDS,
+    priority: "high",
   });
+}
+
+/** Server actions only. */
+export async function clearDraftToken(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(DRAFT_COOKIE);
 }

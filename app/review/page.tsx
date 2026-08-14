@@ -3,8 +3,9 @@ import { confirmAndSubmit } from "@/app/actions";
 import { FieldGuidance } from "@/components/field-guidance";
 import { ItemsCheckboxes } from "@/components/items-checkboxes";
 import { StateSelect } from "@/components/state-select";
-import { draftFromCookieValue, draftIssues, draftMissing } from "@/lib/claims";
-import { readDraftCookie } from "@/lib/session";
+import { draftIssues, draftMissing } from "@/lib/claims";
+import { lookupDraft } from "@/lib/drafts";
+import { readDraftToken } from "@/lib/session";
 import { runtimeConfig } from "@/lib/runtime-config";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,9 @@ function Field({
   return (
     <div className="grid gap-1.5">
       {htmlFor ? (
-        <label htmlFor={htmlFor} className="font-medium">{labelContent}</label>
+        <label htmlFor={htmlFor} className="font-medium">
+          {labelContent}
+        </label>
       ) : (
         <span className="font-medium">{labelContent}</span>
       )}
@@ -48,13 +51,7 @@ function Field({
   );
 }
 
-function ReviewSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function ReviewSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="grid gap-5 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6">
       <h2 className="border-b border-border pb-3 font-display text-xl font-semibold text-ink-display">
@@ -72,9 +69,11 @@ export default async function Review({
 }) {
   const config = runtimeConfig();
   const query = await searchParams;
-  const draft = draftFromCookieValue(await readDraftCookie());
-  if (!draft) redirect("/");
-  if (draft.submittedClaimId) redirect("/done");
+  const lookup = await lookupDraft(await readDraftToken());
+  if (lookup.kind === "submitted") redirect("/done");
+  if (lookup.kind === "expired") redirect("/?draft=expired");
+  if (lookup.kind === "missing") redirect("/");
+  const draft = lookup.draft.state;
   if (draftMissing(draft).length > 0) redirect("/gaps");
 
   const issues = draftIssues(draft);
@@ -89,109 +88,109 @@ export default async function Review({
 
       <form action={confirmAndSubmit} className="mt-7 grid gap-5">
         <ReviewSection title="About you">
-        <Field label="Your name" htmlFor="fullName">
-          <input
-            id="fullName"
-            name="fullName"
-            type="text"
-            required
-            defaultValue={draft.fullName ?? ""}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Phone" htmlFor="phone">
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            required
-            defaultValue={draft.phone ?? ""}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Email" htmlFor="email">
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            defaultValue={draft.email ?? ""}
-            className={inputClass}
-          />
-          <FieldGuidance issue={issueFor("email")} />
-        </Field>
+          <Field label="Your name" htmlFor="fullName">
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              required
+              defaultValue={draft.fullName ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Phone" htmlFor="phone">
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              defaultValue={draft.phone ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Email" htmlFor="email">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              defaultValue={draft.email ?? ""}
+              className={inputClass}
+            />
+            <FieldGuidance issue={issueFor("email")} />
+          </Field>
         </ReviewSection>
 
         <ReviewSection title="Loss details">
-        <Field label="Property address" htmlFor="propertyAddress">
-          <input
-            id="propertyAddress"
-            name="propertyAddress"
-            type="text"
-            required
-            defaultValue={draft.propertyAddress ?? ""}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="State the property is in" htmlFor="stateOfLoss">
-          <StateSelect id="stateOfLoss" name="stateOfLoss" selected={draft.stateOfLoss} />
-        </Field>
-        <Field label="Date of loss" htmlFor="dateOfLoss">
-          <input
-            id="dateOfLoss"
-            name="dateOfLoss"
-            type="date"
-            required
-            defaultValue={draft.dateOfLoss?.toISOString().slice(0, 10) ?? ""}
-            className={inputClass}
-          />
-          <FieldGuidance issue={issueFor("dateOfLoss")} />
-        </Field>
-        <Field label="Insurance company" htmlFor="insurerName">
-          <input
-            id="insurerName"
-            name="insurerName"
-            type="text"
-            required
-            defaultValue={draft.insurerName ?? ""}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="What was damaged">
-          <ItemsCheckboxes selected={draft.itemsDamaged} />
-        </Field>
-        <Field label="Damage, in your own words" optional htmlFor="damageDescription">
-          {/* Forgiving surface (B21): free text, never blocks, no validation —
+          <Field label="Property address" htmlFor="propertyAddress">
+            <input
+              id="propertyAddress"
+              name="propertyAddress"
+              type="text"
+              required
+              defaultValue={draft.propertyAddress ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="State the property is in" htmlFor="stateOfLoss">
+            <StateSelect id="stateOfLoss" name="stateOfLoss" selected={draft.stateOfLoss} />
+          </Field>
+          <Field label="Date of loss" htmlFor="dateOfLoss">
+            <input
+              id="dateOfLoss"
+              name="dateOfLoss"
+              type="date"
+              required
+              defaultValue={draft.dateOfLoss?.toISOString().slice(0, 10) ?? ""}
+              className={inputClass}
+            />
+            <FieldGuidance issue={issueFor("dateOfLoss")} />
+          </Field>
+          <Field label="Insurance company" htmlFor="insurerName">
+            <input
+              id="insurerName"
+              name="insurerName"
+              type="text"
+              required
+              defaultValue={draft.insurerName ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="What was damaged">
+            <ItemsCheckboxes selected={draft.itemsDamaged} />
+          </Field>
+          <Field label="Damage, in your own words" optional htmlFor="damageDescription">
+            {/* Forgiving surface (B21): free text, never blocks, no validation —
               the human-correction net for the LLM-fillable field (B20). */}
-          <textarea
-            id="damageDescription"
-            name="damageDescription"
-            rows={3}
-            defaultValue={draft.damageDescription ?? ""}
-            className={`${inputClass} resize-y`}
-          />
-        </Field>
+            <textarea
+              id="damageDescription"
+              name="damageDescription"
+              rows={3}
+              defaultValue={draft.damageDescription ?? ""}
+              className={`${inputClass} resize-y`}
+            />
+          </Field>
         </ReviewSection>
 
         <ReviewSection title="Policy details">
-        <Field label="Policy number" optional htmlFor="policyNumber">
-          <input
-            id="policyNumber"
-            name="policyNumber"
-            type="text"
-            defaultValue={draft.policyNumber ?? ""}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Deductible" optional htmlFor="deductible">
-          <input
-            id="deductible"
-            name="deductible"
-            type="text"
-            defaultValue={draft.deductible ?? ""}
-            className={inputClass}
-          />
-        </Field>
+          <Field label="Policy number" optional htmlFor="policyNumber">
+            <input
+              id="policyNumber"
+              name="policyNumber"
+              type="text"
+              defaultValue={draft.policyNumber ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Deductible" optional htmlFor="deductible">
+            <input
+              id="deductible"
+              name="deductible"
+              type="text"
+              defaultValue={draft.deductible ?? ""}
+              className={inputClass}
+            />
+          </Field>
         </ReviewSection>
 
         {config.isPilot && (

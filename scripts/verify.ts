@@ -81,6 +81,7 @@ function main() {
 
   const report = JSON.parse(readFileSync(RESULTS_FILE, "utf8")) as JsonSuite;
   const specs = collectSpecs(report);
+  const suiteFailures = specs.filter((spec) => !spec.ok);
 
   // Map each acceptance criterion to the spec whose title contains its id.
   const rows = Object.entries(ACCEPTANCE_CRITERIA).map(([id, description]) => {
@@ -110,17 +111,30 @@ function main() {
     }
   }
 
+  if (suiteFailures.length > 0) {
+    console.log("\n  Full-suite failures");
+    console.log("  ───────────────────");
+    for (const failure of suiteFailures) {
+      console.log(`  ✗ ${failure.title}`);
+      for (const error of failure.errors) console.log(`      ↳ ${error}`);
+    }
+  }
+
   // TODO(phase-0): surface a richer console/network error log here (currently
   // captured by the fixture and folded into the per-criterion error lines).
   // TODO(phase-0): screenshot every primary flow + visual-diff against a baseline.
 
   const failed = rows.filter((r) => r.status !== "PASS");
   console.log("");
-  if (failed.length > 0) {
-    console.log(`  Result: ${rows.length - failed.length}/${rows.length} criteria passed — FAIL\n`);
+  if (failed.length > 0 || suiteFailures.length > 0 || run.status !== 0) {
+    console.log(
+      `  Result: ${rows.length - failed.length}/${rows.length} criteria passed; ${specs.length - suiteFailures.length}/${specs.length} tests passed — FAIL\n`,
+    );
     process.exit(1);
   }
-  console.log(`  Result: ${rows.length}/${rows.length} criteria passed — PASS\n`);
+  console.log(
+    `  Result: ${rows.length}/${rows.length} criteria passed; ${specs.length}/${specs.length} tests passed — PASS\n`,
+  );
 }
 
 main();

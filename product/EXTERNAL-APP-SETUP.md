@@ -50,6 +50,11 @@ Provide:
 - backup retention setting; and
 - the name of the person responsible for restore requests.
 
+Also choose where the production expired-draft cleanup will run (for example,
+a protected Vercel Cron endpoint or a database-provider scheduled job). The
+repository includes `npm run db:cleanup` for local validation, but it is
+intentionally blocked from connecting to a hosted database.
+
 Do not reuse the prototype SQLite database or copy synthetic claims into
 production.
 
@@ -71,12 +76,19 @@ initial staff users. Do not enable public signup.
 Record:
 
 - initial staff email addresses;
+- each initial user's access level (`admin` or `standard`);
 - administrator/owner;
 - allowed login method;
 - MFA policy; and
 - session duration.
 
 Provider-specific keys will be added after the provider is selected.
+
+The application has only two staff roles. New invitations should default to
+`standard`; grant `admin` only after the business owner confirms who can manage
+staff access and operational settings. The detailed standard-user permissions
+are still a business decision and should be approved before staff mutations or
+exports are enabled.
 
 ## 4. Transactional email
 
@@ -175,4 +187,3 @@ Selected auth provider:
 Selected email provider:
 Selected monitoring provider:
 ```
-

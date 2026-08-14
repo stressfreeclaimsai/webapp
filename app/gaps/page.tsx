@@ -4,13 +4,9 @@ import { FieldGuidance } from "@/components/field-guidance";
 import { ItemsCheckboxes } from "@/components/items-checkboxes";
 import { StateSelect } from "@/components/state-select";
 import { REQUIRED_FIELDS, type FieldIssue, type RequiredField } from "@/lib/claim-facts";
-import {
-  draftFromCookieValue,
-  draftIssues,
-  draftMissing,
-  type ClaimDraftState,
-} from "@/lib/claims";
-import { readDraftCookie } from "@/lib/session";
+import { draftIssues, draftMissing, type ClaimDraftState } from "@/lib/claims";
+import { lookupDraft } from "@/lib/drafts";
+import { readDraftToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +51,9 @@ function inputFor(field: RequiredField, draft: ClaimDraftState, ariaLabel: strin
     case "itemsDamaged":
       return <ItemsCheckboxes selected={draft.itemsDamaged} />;
     case "stateOfLoss":
-      return <StateSelect name="value" selected={draft.stateOfLoss} autoFocus ariaLabel={ariaLabel} />;
+      return (
+        <StateSelect name="value" selected={draft.stateOfLoss} autoFocus ariaLabel={ariaLabel} />
+      );
     case "dateOfLoss":
       return (
         <input
@@ -70,7 +68,15 @@ function inputFor(field: RequiredField, draft: ClaimDraftState, ariaLabel: strin
       );
     case "phone":
       return (
-        <input type="tel" name="value" aria-label={ariaLabel} required autoComplete="tel" className={base} autoFocus />
+        <input
+          type="tel"
+          name="value"
+          aria-label={ariaLabel}
+          required
+          autoComplete="tel"
+          className={base}
+          autoFocus
+        />
       );
     case "email":
       return (
@@ -86,7 +92,16 @@ function inputFor(field: RequiredField, draft: ClaimDraftState, ariaLabel: strin
         />
       );
     default:
-      return <input type="text" name="value" aria-label={ariaLabel} required className={base} autoFocus />;
+      return (
+        <input
+          type="text"
+          name="value"
+          aria-label={ariaLabel}
+          required
+          className={base}
+          autoFocus
+        />
+      );
   }
 }
 
@@ -100,7 +115,10 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
         Helpful if they&rsquo;re handy — completely fine if they&rsquo;re not. We can get started
         either way.
       </p>
-      <form action={saveOptionals} className="mt-7 grid gap-5 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6">
+      <form
+        action={saveOptionals}
+        className="mt-7 grid gap-5 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6"
+      >
         <div className="grid gap-1.5">
           <label htmlFor="policyNumber" className="font-medium">
             Policy number <span className="font-normal text-muted">(optional)</span>
@@ -150,9 +168,11 @@ function OptionalStep({ draft }: { draft: ClaimDraftState }) {
 }
 
 export default async function Gaps() {
-  const draft = draftFromCookieValue(await readDraftCookie());
-  if (!draft) redirect("/");
-  if (draft.submittedClaimId) redirect("/done");
+  const lookup = await lookupDraft(await readDraftToken());
+  if (lookup.kind === "submitted") redirect("/done");
+  if (lookup.kind === "expired") redirect("/?draft=expired");
+  if (lookup.kind === "missing") redirect("/");
+  const draft = lookup.draft.state;
 
   // A field needs attention if it's missing OR present but implausible
   // (B14/B15) — the latter re-asks the same question with guidance instead of
@@ -177,10 +197,15 @@ export default async function Gaps() {
 
   return (
     <section className="pt-2 sm:pt-6">
-      <div className="mb-7" aria-label={`${answered} of ${REQUIRED_FIELDS.length} required details captured`}>
+      <div
+        className="mb-7"
+        aria-label={`${answered} of ${REQUIRED_FIELDS.length} required details captured`}
+      >
         <div className="mb-2 flex items-center justify-between gap-4 text-xs font-semibold uppercase tracking-[0.1em] text-muted">
           <span>Claim details</span>
-          <span>{answered} of {REQUIRED_FIELDS.length}</span>
+          <span>
+            {answered} of {REQUIRED_FIELDS.length}
+          </span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-pill bg-surface-deep">
           <div
@@ -192,7 +217,10 @@ export default async function Gaps() {
       <p className="text-eyebrow font-semibold uppercase text-warn">{intro}</p>
       <h1 className="mt-3 text-balance font-display text-display">{question.title}</h1>
       <p className="mt-3 leading-relaxed text-muted">{question.help}</p>
-      <form action={answerGap} className="mt-7 grid gap-4 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6">
+      <form
+        action={answerGap}
+        className="mt-7 grid gap-4 rounded-card border border-border bg-surface-2 p-5 shadow-sm sm:p-6"
+      >
         <input type="hidden" name="field" value={field} />
         <FieldGuidance issue={issue} />
         {inputFor(field, draft, question.title)}

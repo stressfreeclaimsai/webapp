@@ -14,6 +14,8 @@ generic blue/green insurance palette returned by the automated product match.
 ## UI/UX Pro Max rules applied
 
 - Minimal single-column composition with one primary action.
+- Trust-first marketing content follows the intake in this order: reassurance strip, three-step process, damage examples, static FAQ, and a compact ownership/service-clarity note.
+- Keep the intake as the only conversion action; below-input content informs and reassures without adding competing buttons.
 - Paper-like, matte surfaces with restrained depth.
 - Visible or programmatic labels for every form control.
 - Minimum 48px primary controls and generous checkbox targets.
@@ -29,4 +31,4 @@ generic blue/green insurance palette returned by the automated product match.
 - No GSAP dependency or decorative scroll animation.
 - No glassmorphism, gradients used as decoration, or icon-heavy chrome.
 - No new navigation or additional steps.
-
+- No testimonials, partner logos, fee language, licensing claims, settlement claims, or repair guarantees without substantiation and approval.

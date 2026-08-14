@@ -25,13 +25,11 @@ export function generateMetadata(): Metadata {
     title: "StressFreeClaim.ai",
     description: config.isPilot
       ? "Tell us what happened. Our team will review your information and contact you about next steps."
-      : "Tell us what happened and we'll take it from there — the stress-free way to start a storm claim.",
+      : "Describe storm damage in your own words, review every detail, and send it to our team for follow-up.",
   };
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>

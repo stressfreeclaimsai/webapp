@@ -59,6 +59,7 @@ Until counsel and operations confirm otherwise, the product should not promise t
 ### Staff experience
 
 - Staff sign-in with approved email domains and enforced multi-factor authentication where the identity provider supports it.
+- Two access levels only: `standard` and `admin`, with new users defaulting to `standard`; the detailed permission matrix must be approved before launch.
 - Claims queue with status, state, claimant, date of loss, insurer, submitted time, and assigned owner.
 - Search and practical filters.
 - Claim detail page with the homeowner-confirmed intake snapshot.
@@ -192,10 +193,11 @@ The build can begin with defaults, but launch requires:
 1. Pilot states and the counsel who approved them.
 2. Exact public-facing entity and brand.
 3. Named staff users and the pilot queue owner.
-4. Response-time promise to homeowners.
-5. Privacy/retention owner and deletion contact.
-6. Whether policy number and deductible should remain optional and whether either should be collected at all.
-7. The desired pilot start date and expected weekly claim volume.
+4. Which staff actions belong to `standard` versus `admin` users.
+5. Response-time promise to homeowners.
+6. Privacy/retention owner and deletion contact.
+7. Whether policy number and deductible should remain optional and whether either should be collected at all.
+8. The desired pilot start date and expected weekly claim volume.
 
 ## Recommendation
 

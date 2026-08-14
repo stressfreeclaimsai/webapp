@@ -3,11 +3,12 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 const prisma = new PrismaClient();
+const createdDraftIds: string[] = [];
+const createdStaffIds: string[] = [];
 
 test.afterAll(async () => {
-  await prisma.claimDraft.deleteMany({
-    where: { continuationTokenHash: { startsWith: "test:" } },
-  });
+  await prisma.claimDraft.deleteMany({ where: { id: { in: createdDraftIds } } });
+  await prisma.staffUser.deleteMany({ where: { id: { in: createdStaffIds } } });
   await prisma.$disconnect();
 });
 
@@ -31,7 +32,7 @@ test("[DB-1] the synthetic seed exercises the production operations graph", asyn
 
 test("[DB-2] experimental intake fields and vocabularies round-trip without a migration", async () => {
   const rawToken = "never-store-this-raw-token";
-  const tokenHash = `test:${createHash("sha256").update(rawToken).digest("hex")}`;
+  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
 
   const draft = await prisma.claimDraft.create({
     data: {
@@ -46,6 +47,7 @@ test("[DB-2] experimental intake fields and vocabularies round-trip without a mi
       expiresAt: new Date(Date.now() + 60_000),
     },
   });
+  createdDraftIds.push(draft.id);
 
   expect(draft.continuationTokenHash).toBe(tokenHash);
   expect(draft.continuationTokenHash).not.toContain(rawToken);
@@ -100,4 +102,17 @@ test("[DB-4] a claim cannot have two active assignees", async () => {
   ).rejects.toMatchObject({
     code: "P2002",
   });
+});
+
+test("[DB-5] new staff default to the standard access level", async () => {
+  const staff = await prisma.staffUser.create({
+    data: {
+      externalSubject: "test:staff:standard-default",
+      email: "standard-default@stressfreeclaim.example",
+      displayName: "Standard Access Test",
+    },
+  });
+  createdStaffIds.push(staff.id);
+
+  expect(staff.role).toBe("standard");
 });

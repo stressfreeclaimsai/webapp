@@ -23,7 +23,7 @@ generator client {
 
 model ClaimDraft {
   id                    String @id @default(cuid())
-  continuationTokenHash String @unique
+  continuationTokenHash String @unique @db.Char(64)
   intakeVersion         Int    @default(1)
   status                String @default("in_progress") @db.VarChar(32)
 
@@ -103,7 +103,7 @@ model StaffUser {
   externalSubject String  @unique @db.VarChar(191)
   email           String  @unique
   displayName     String
-  role            String  @default("reviewer") @db.VarChar(32)
+  role            String  @default("standard") @db.VarChar(32)
   isActive        Boolean @default(true)
 
   assignments     ClaimAssignment[] @relation("AssignmentAssignee")

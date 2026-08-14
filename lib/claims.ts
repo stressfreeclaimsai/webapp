@@ -1,6 +1,3 @@
-import { randomBytes, randomUUID } from "node:crypto";
-import { prisma } from "@/lib/db";
-import { CURRENT_INTAKE_VERSION } from "@/lib/production-domain";
 import {
   ITEMS_DAMAGED,
   isStateCode,
@@ -12,18 +9,11 @@ import {
   type RequiredField,
   type StateCode,
 } from "@/lib/claim-facts";
-import type { Claim } from "@prisma/client";
 
 /**
- * Transitional shared intake contract: the proven prototype still keeps its
- * draft state in an httpOnly cookie while the PostgreSQL ClaimDraft model and
- * opaque-token migration are built as the next workstream.
- *
- * This module still owns gap derivation and server-authoritative submit. No
- * screen trusts client conclusions, and the raw utterance is never stored.
- * ClaimDraft is deliberately not wired into the request path in this change:
- * separating that migration preserves the validated prototype behavior while
- * the durable model is reviewed and tested.
+ * Pure intake contract: draft state, patch normalization, gap derivation, and
+ * server-authoritative validation. Persistence and continuation-token behavior
+ * live in lib/drafts.ts so these rules stay independently testable.
  */
 
 export type ClaimDraftState = {
@@ -66,8 +56,7 @@ export function emptyDraft(): ClaimDraftState {
   };
 }
 
-// Keep the cookie comfortably under browser limits: no single field needs
-// more than this to be readable on Review, and the fixed shape bounds the rest.
+// Bound text written to the database and rendered back on Review.
 const clip = (value: string) => value.trim().slice(0, 300);
 
 /** Fold a patch into the draft. Strings are clipped; items stay in the fixed set. */
@@ -95,43 +84,6 @@ export function applyPatch(draft: ClaimDraftState, patch: DraftPatch): ClaimDraf
   }
   if (patch.optionalsOffered !== undefined) next.optionalsOffered = patch.optionalsOffered;
   return next;
-}
-
-/** Cookie payload ⇄ draft. A malformed cookie is a missing draft, never an error. */
-export function draftToCookieValue(draft: ClaimDraftState): string {
-  const wire = { ...draft, dateOfLoss: draft.dateOfLoss?.toISOString() ?? null };
-  return Buffer.from(JSON.stringify(wire), "utf8").toString("base64url");
-}
-
-export function draftFromCookieValue(raw: string | null): ClaimDraftState | null {
-  if (!raw) return null;
-  try {
-    const wire = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as Record<
-      string,
-      unknown
-    >;
-    const str = (v: unknown) => (typeof v === "string" && v.trim() ? clip(v) : null);
-    const date = typeof wire.dateOfLoss === "string" ? new Date(wire.dateOfLoss) : null;
-    return {
-      fullName: str(wire.fullName),
-      propertyAddress: str(wire.propertyAddress),
-      stateOfLoss: isStateCode(wire.stateOfLoss) ? wire.stateOfLoss : null,
-      dateOfLoss: date && !Number.isNaN(date.getTime()) ? date : null,
-      insurerName: str(wire.insurerName),
-      itemsDamaged: ITEMS_DAMAGED.filter(
-        (i) => Array.isArray(wire.itemsDamaged) && wire.itemsDamaged.includes(i),
-      ),
-      phone: str(wire.phone),
-      email: str(wire.email),
-      policyNumber: str(wire.policyNumber),
-      deductible: str(wire.deductible),
-      damageDescription: str(wire.damageDescription),
-      optionalsOffered: wire.optionalsOffered === true,
-      submittedClaimId: str(wire.submittedClaimId),
-    };
-  } catch {
-    return null;
-  }
 }
 
 /** What the draft still needs before it can be submitted (pure derivation). */
@@ -170,19 +122,15 @@ export class IncompleteDraftError extends Error {
 
 export class ImplausibleDraftError extends Error {
   constructor(public readonly issues: DraftIssue[]) {
-    super(`Draft has implausible values: ${issues.map((i) => `${i.field} (${i.issue})`).join(", ")}`);
+    super(
+      `Draft has implausible values: ${issues.map((i) => `${i.field} (${i.issue})`).join(", ")}`,
+    );
     this.name = "ImplausibleDraftError";
   }
 }
 
-/**
- * Create the demo Claim from a complete draft. Re-validates completeness
- * server-side — an incomplete draft is rejected regardless of what the client
- * claimed (AC-8). Nothing is sent to any external system (AC-6). On
- * serverless the row is a write-only demo record (B12/B13); /done renders
- * from the submitted cookie snapshot, never from a cross-instance read.
- */
-export async function submitClaim(draft: ClaimDraftState): Promise<Claim> {
+/** Revalidate completeness and plausibility at the persistence boundary. */
+export function assertDraftSubmittable(draft: ClaimDraftState): void {
   const missing = draftMissing(draft);
   if (missing.length > 0) throw new IncompleteDraftError(missing);
 
@@ -190,26 +138,4 @@ export async function submitClaim(draft: ClaimDraftState): Promise<Claim> {
   // file a future-dated loss or a malformed email.
   const issues = draftIssues(draft);
   if (issues.length > 0) throw new ImplausibleDraftError(issues);
-
-  return prisma.claim.create({
-    data: {
-      referenceCode: `SFC-${randomBytes(4).toString("hex").toUpperCase()}`,
-      submissionKey: randomUUID(),
-      intakeVersion: CURRENT_INTAKE_VERSION,
-      source: "web_intake",
-      status: "new",
-      claimantName: draft.fullName!,
-      propertyAddress: draft.propertyAddress!,
-      stateOfLoss: draft.stateOfLoss!,
-      phone: draft.phone!,
-      email: draft.email!,
-      insurerName: draft.insurerName!,
-      policyNumber: draft.policyNumber,
-      deductible: draft.deductible,
-      dateOfLoss: draft.dateOfLoss!,
-      itemsDamaged: draft.itemsDamaged,
-      damageDescription: draft.damageDescription ?? "",
-      extraFields: {},
-    },
-  });
 }

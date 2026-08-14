@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ITEM_LABELS, stateName } from "@/lib/claim-facts";
-import { draftFromCookieValue, draftMissing } from "@/lib/claims";
-import { readDraftCookie } from "@/lib/session";
+import { draftMissing } from "@/lib/claims";
+import { lookupDraft } from "@/lib/drafts";
+import { readDraftToken } from "@/lib/session";
 import { runtimeConfig } from "@/lib/runtime-config";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +15,9 @@ export const dynamic = "force-dynamic";
  * inspection, an approved contractor repairs. Nothing is scheduled, sent, or
  * contracted; nothing leaves the app. No fee language anywhere (settled Won't).
  *
- * This milestone still renders from the submitted cookie snapshot so changing
- * the database substrate does not silently change the validated intake UX.
- * The next workstream replaces that cookie payload with an opaque token and a
- * durable ClaimDraft read.
+ * The browser holds only an opaque continuation token. The submitted snapshot
+ * and public reference are read from PostgreSQL, so refreshes and concurrent
+ * submits cannot create a second claim or expose claim facts in cookie data.
  */
 
 const NEXT_STEPS = (insurer: string) => [
@@ -39,10 +39,10 @@ const dateLong = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone:
 
 export default async function Done() {
   const config = runtimeConfig();
-  const draft = draftFromCookieValue(await readDraftCookie());
+  const lookup = await lookupDraft(await readDraftToken());
 
   // No draft at all — a calm, directional state, never a dead-end (AC-8).
-  if (!draft) {
+  if (lookup.kind === "missing" || lookup.kind === "expired") {
     return (
       <section className="pt-2 sm:pt-6">
         <h1 className="text-balance font-display text-display">Nothing here yet.</h1>
@@ -61,10 +61,13 @@ export default async function Done() {
 
   // An unsubmitted draft lands back on the step that needs it — the submit
   // itself is server-authoritative, so skipping ahead can't file anything.
-  if (!draft.submittedClaimId) redirect(draftMissing(draft).length > 0 ? "/gaps" : "/review");
+  if (lookup.kind === "active") {
+    redirect(draftMissing(lookup.draft.state).length > 0 ? "/gaps" : "/review");
+  }
 
+  const draft = lookup.draft.state;
   const firstName = draft.fullName!.trim().split(/\s+/)[0];
-  const reference = `SFC-${draft.submittedClaimId!.slice(-6).toUpperCase()}`;
+  const reference = lookup.draft.submittedClaim!.referenceCode;
   const items = draft.itemsDamaged.map((item) => ITEM_LABELS[item]);
 
   const summary: Array<[string, string]> = [
@@ -108,7 +111,10 @@ export default async function Done() {
         </div>
         <dl className="mt-4 grid gap-2.5 text-sm">
           {summary.map(([label, value]) => (
-            <div key={label} className="grid gap-0.5 border-b border-border pb-2.5 last:border-0 last:pb-0 sm:grid-cols-[8rem_1fr] sm:gap-3">
+            <div
+              key={label}
+              className="grid gap-0.5 border-b border-border pb-2.5 last:border-0 last:pb-0 sm:grid-cols-[8rem_1fr] sm:gap-3"
+            >
               <dt className="text-muted">{label}</dt>
               <dd className="font-medium">{value}</dd>
             </div>
@@ -117,28 +123,32 @@ export default async function Done() {
       </div>
 
       {/* The concierge promise — a non-functional preview, nothing more. */}
-      {!config.isPilot && <>
-        <h2 className="mt-10 text-eyebrow font-semibold uppercase text-warn">What happens next</h2>
-        <ol className="mt-4 grid gap-0">
-        {NEXT_STEPS(draft.insurerName!).map((step, i) => (
-          <li key={step.title} className="relative flex gap-4 pb-8 last:pb-0">
-            {i < 2 && (
-              <span
-                aria-hidden="true"
-                className="absolute left-[15px] top-8 h-[calc(100%-2rem)] w-px bg-border"
-              />
-            )}
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-accent-soft text-sm font-semibold text-warn">
-              {i + 1}
-            </span>
-            <div>
-              <h3 className="font-medium">{step.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
-            </div>
-          </li>
-        ))}
-        </ol>
-      </>}
+      {!config.isPilot && (
+        <>
+          <h2 className="mt-10 text-eyebrow font-semibold uppercase text-warn">
+            What happens next
+          </h2>
+          <ol className="mt-4 grid gap-0">
+            {NEXT_STEPS(draft.insurerName!).map((step, i) => (
+              <li key={step.title} className="relative flex gap-4 pb-8 last:pb-0">
+                {i < 2 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-[15px] top-8 h-[calc(100%-2rem)] w-px bg-border"
+                  />
+                )}
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-accent-soft text-sm font-semibold text-warn">
+                  {i + 1}
+                </span>
+                <div>
+                  <h3 className="font-medium">{step.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
       <p className="mt-8 border-t border-border pt-5 leading-relaxed text-muted">
         {config.isPilot

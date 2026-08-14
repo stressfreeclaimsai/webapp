@@ -6,15 +6,15 @@ that the current intake questions are final.
 
 ## Model map
 
-| Model | Responsibility |
-|---|---|
-| `ClaimDraft` | Expiring, server-side intake state addressed by a hashed continuation token |
-| `Claim` | Self-contained snapshot of everything confirmed at submission |
-| `StaffUser` | Local authorization profile mapped to a future managed-auth subject |
-| `ClaimAssignment` | Assignment history; an open row has no `unassignedAt` |
-| `ClaimNote` | Staff-authored operational notes, separate from homeowner damage text |
-| `AuditEvent` | Append-only record of material reads and mutations |
-| `NotificationDelivery` | Idempotent delivery attempt and provider-status record |
+| Model                  | Responsibility                                                              |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `ClaimDraft`           | Expiring, server-side intake state addressed by a hashed continuation token |
+| `Claim`                | Self-contained snapshot of everything confirmed at submission               |
+| `StaffUser`            | Local authorization profile mapped to a future managed-auth subject         |
+| `ClaimAssignment`      | Assignment history; an open row has no `unassignedAt`                       |
+| `ClaimNote`            | Staff-authored operational notes, separate from homeowner damage text       |
+| `AuditEvent`           | Append-only record of material reads and mutations                          |
+| `NotificationDelivery` | Idempotent delivery attempt and provider-status record                      |
 
 ## Extensibility rules
 
@@ -75,6 +75,22 @@ instead of adding `latestNote`, `assignedTo`, or `emailSent` flags to `Claim`.
 PostgreSQL also enforces that a claim has at most one open assignment through a
 partial unique index.
 
+### Staff identity is an adapter boundary
+
+Application records refer to `StaffUser.id`; authentication providers map into
+that record through the stable `externalSubject`. The local staff workspace
+resolves a seeded development subject behind `requireStaff()` and is disabled
+in pilot and production runtimes. A company-owned identity provider replaces
+only that resolver and session plumbing—not claim, assignment, note, audit, or
+page contracts.
+
+The customer-approved access vocabulary has two levels: `standard` and
+`admin`. New staff records default to `standard`. The exact capability matrix
+is intentionally deferred until the first hires and operating workflow are
+clear; no current page or repository may infer extra standard-user access from
+the role label alone. `admin` is reserved for approved owner/administrative
+functions, including future staff access management.
+
 ## Local isolation
 
 - Development uses the `public` PostgreSQL schema.
@@ -85,16 +101,19 @@ partial unique index.
 - Preview and pilot databases will use company-owned credentials and must never
   reuse the local password.
 
-## Deliberately not wired yet
+## Draft and submission lifecycle
 
-This milestone defines and validates `ClaimDraft`, but the proven intake still
-uses its prototype cookie payload. The next migration will:
-
-1. generate a high-entropy continuation token;
-2. store only its SHA-256 hash in `ClaimDraft`;
-3. store only the raw opaque token in the secure cookie;
-4. load and update drafts transactionally; and
-5. expire or rotate the token after submission.
-
-Keeping that behavior change separate makes it easier to review, test, and
-roll back without conflating it with the database substrate migration.
+- The browser stores a 256-bit random continuation token in an `HttpOnly`,
+  `SameSite=Lax` cookie. No claim facts or personal information are stored in
+  the cookie.
+- PostgreSQL stores only the token's SHA-256 hash. Drafts expire after seven
+  days and an expired token returns the homeowner to a calm restart state.
+- Review corrections are saved to the draft before submission.
+- Submission takes a row lock, creates the immutable `Claim` snapshot, marks
+  the draft submitted, and appends `claim.submitted` in one transaction.
+- `Claim.submissionKey` and the draft-to-claim unique relation provide database
+  backstops against duplicate submissions.
+- `npm run db:cleanup` marks elapsed drafts expired and removes terminal drafts
+  after a 24-hour retention window. This command is deliberately restricted to
+  the local Docker database; production scheduling will be added with the
+  company-owned hosting and database resources.
