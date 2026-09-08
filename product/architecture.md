@@ -33,12 +33,15 @@ credentials, email domains, monitoring projects, and URLs.
 - The original prototype branch/deployment remains unchanged.
 - Opaque draft tokens, server-side draft persistence, expiry handling, and
   idempotent transactional submission are implemented locally.
-- A read-only local staff queue and claim-detail view use a seeded development
-  identity through the provider-neutral `requireStaff()` boundary. The local
-  adapter refuses pilot and production runtimes; company authentication will
-  replace that adapter without changing the pages or claim repositories.
-- Staff mutations, company authentication, and provider integrations remain
-  gated follow-on work.
+- A read-only local staff queue and claim-detail view sit behind the
+  provider-neutral `requireStaff()` boundary. Two adapters exist: the seeded
+  development identity (development and the test suite only) and WorkOS
+  AuthKit (always in production and pilot; decision B25). Roles and active
+  status are enforced from `StaffUser`, never from the provider.
+- The production database is managed PostgreSQL on Neon (US-East-2), migrated
+  from the checked-in Prisma migrations; `/api/health` probes it.
+- Staff mutations, notifications, and the remaining provider integrations
+  (email, monitoring) remain gated follow-on work.
 
 ## Runtime modes
 
@@ -74,8 +77,11 @@ screens. Today those checks run locally; they are not yet enforced by GitHub.
 1. Add local PostgreSQL schema and migrations. **Complete.**
 2. Replace the personal-data draft cookie with an opaque token and server-side
    draft. **Complete locally.**
-3. Provision isolated company-owned external services.
-4. Add staff authentication and authorization.
+3. Provision isolated company-owned external services. **Database complete
+   (Neon); email and monitoring pending.**
+4. Add staff authentication and authorization. **Adapter complete (WorkOS
+   AuthKit, B25); awaiting dashboard configuration and first invited
+   sign-in.**
 5. Add queue, detail, assignment, notes, and audit history. **Queue and detail
    reads complete locally; staff mutations pending.**
 6. Add idempotent notifications and delivery visibility.

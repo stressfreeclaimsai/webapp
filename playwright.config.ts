@@ -36,6 +36,9 @@ export default defineConfig({
       DATABASE_URL: LOCAL_TEST_DATABASE_URL,
       DIRECT_URL: LOCAL_TEST_DATABASE_URL,
       EXTRACTION_LLM_STUB: "1",
+      // The suite always runs the seeded local staff identity (B25); the
+      // WorkOS path needs a real provider session and is verified deployed.
+      STAFF_AUTH_PROVIDER: "local",
     },
   },
 });

@@ -60,18 +60,37 @@ production.
 
 ## 3. Staff authentication
 
-**Recommended timing:** now.
+**Recommended timing:** now. **Provider selected:** WorkOS AuthKit (decision
+B25) — free to 1M monthly active users, TOTP multi-factor authentication,
+invitation-only registration, server-side Next.js sessions.
 
-Choose a managed authentication provider that supports:
+Create the WorkOS account under Deskar 6 LLC and invite the developer. Use the
+**test** environment until launch, then switch the deployment to the **live**
+environment keys. In the WorkOS dashboard:
 
-- server-side Next.js sessions;
-- email allowlisting or invitations;
-- multi-factor authentication;
-- session revocation; and
-- audit visibility.
+1. **Redirects → Redirect URI:** `https://<pilot host>/callback`
+   (locally `http://localhost:3000/callback`).
+2. **Redirects → Sign-in URL:** `https://<pilot host>/sign-in`.
+3. **Redirects → Logout URI:** `https://<pilot host>/`.
+4. **Authentication → Sign-ups:** disabled. Invitations are the only way an
+   account can be created.
+5. **Authentication → Multi-factor:** required for all users.
+6. **Sessions:** set the maximum session length and inactivity timeout to the
+   shortest values the queue owner will tolerate.
 
-Create the production application, configure the pilot URL, and invite only the
-initial staff users. Do not enable public signup.
+Environment variables for the deployment (all server-side):
+
+```text
+WORKOS_CLIENT_ID=
+WORKOS_API_KEY=
+WORKOS_COOKIE_PASSWORD=          # openssl rand -base64 32
+NEXT_PUBLIC_WORKOS_REDIRECT_URI= # must equal the dashboard Redirect URI
+```
+
+Staff are added with `npm run staff:invite -- --email … --name … [--role admin]`
+run against the target database: it creates the staff record (default access
+level `standard`) and sends the WorkOS invitation. Access is removed by
+deactivating the staff record; the provider is identity only.
 
 Record:
 

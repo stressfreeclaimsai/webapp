@@ -263,6 +263,32 @@ no role assignment or detailed permission matrix is inferred from that fact.
 Staff mutations and managed authentication must consume an approved
 capability matrix before launch.
 
+## Staff authentication (2026-09-08)
+
+B25. **Managed staff identity is WorkOS AuthKit; authorization stays in
+`StaffUser`.** Chosen against Neon Auth (no two-factor plugin on the managed
+service and restricted sign-ups "coming soon"), Clerk and Auth0 (MFA only on
+paid plans), and self-hosted Better Auth (not managed; invite-only needs
+custom hooks). AuthKit is free to 1M MAU with TOTP MFA, closed
+invitation-only registration, and encrypted server-side sessions for the
+App Router. The provider is identity only: `requireStaff()` maps the WorkOS
+subject to `StaffUser.externalSubject`, binds an invited record on its first
+verified sign-in (`pending:<email>` → `user_…`), and enforces `isActive` and
+the B24 roles from our table — WorkOS organizations and roles are not used.
+Production and pilot runtimes always use WorkOS (`STAFF_AUTH_PROVIDER` can
+only pick `local` outside them), and a production runtime missing WorkOS
+configuration fails closed to 404 rather than falling back to the seeded
+identity. Each sign-in writes a `staff.signed_in` audit event (subject and
+method only; no personal data). Staff are added with `npm run staff:invite`,
+which creates the pending record and sends the WorkOS invitation; dashboard
+settings must keep sign-ups disabled and MFA required. Session revocation
+is deactivating the `StaffUser` row plus short dashboard session limits; an
+admin-side "sign out everywhere" was not confirmed in WorkOS docs. New
+dependency: `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_COOKIE_PASSWORD`,
+`NEXT_PUBLIC_WORKOS_REDIRECT_URI` as server env vars. The Playwright suite
+runs the local provider; the WorkOS path is verified against the deployed
+runtime, not stubbed.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.
