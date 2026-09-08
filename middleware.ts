@@ -1,5 +1,5 @@
 import { NextResponse, type NextFetchEvent, type NextMiddleware, type NextRequest } from "next/server";
-import { staffAuthProvider } from "@/lib/staff-auth-provider";
+import { isWorkosConfigured, staffAuthProvider } from "@/lib/staff-auth-provider";
 
 /**
  * AuthKit session middleware for the staff surface (decision B25). The SDK
@@ -12,7 +12,10 @@ import { staffAuthProvider } from "@/lib/staff-auth-provider";
 let workosProxy: NextMiddleware | undefined;
 
 export default async function middleware(request: NextRequest, event: NextFetchEvent) {
-  if (staffAuthProvider() !== "workos") return NextResponse.next();
+  // Local provider, or a managed runtime whose WorkOS variables are not set
+  // yet: pass through. requireStaff() then fails closed to 404 — never a 500
+  // from the SDK, never the development identity.
+  if (staffAuthProvider() !== "workos" || !isWorkosConfigured()) return NextResponse.next();
 
   if (!workosProxy) {
     const { authkitProxy } = await import("@workos-inc/authkit-nextjs");

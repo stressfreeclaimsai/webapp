@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { staffAuthProvider } from "@/lib/staff-auth-provider";
+import { isWorkosConfigured, staffAuthProvider } from "@/lib/staff-auth-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
   if (staffAuthProvider() !== "workos") {
     return NextResponse.redirect(new URL("/staff", request.url));
   }
+  // Managed runtime without WorkOS configured: fail closed, reveal nothing.
+  if (!isWorkosConfigured()) return new NextResponse(null, { status: 404 });
   const { getSignInUrl } = await import("@workos-inc/authkit-nextjs");
   return NextResponse.redirect(await getSignInUrl({ returnTo: "/staff/claims" }));
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { recordStaffSignIn } from "@/lib/staff-auth";
-import { staffAuthProvider } from "@/lib/staff-auth-provider";
+import { isWorkosConfigured, staffAuthProvider } from "@/lib/staff-auth-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
  * development or tests.
  */
 export async function GET(request: NextRequest) {
-  if (staffAuthProvider() !== "workos") return new NextResponse(null, { status: 404 });
+  if (staffAuthProvider() !== "workos" || !isWorkosConfigured()) {
+    return new NextResponse(null, { status: 404 });
+  }
 
   const { handleAuth } = await import("@workos-inc/authkit-nextjs");
   const callback = handleAuth({
