@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { runtimeConfig } from "@/lib/runtime-config";
-import { isWorkosConfigured, staffAuthProvider } from "@/lib/staff-auth-provider";
+import { missingWorkosVars, staffAuthProvider } from "@/lib/staff-auth-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +31,16 @@ async function probeDatabase(): Promise<"ok" | "unreachable"> {
  * means a managed runtime whose WorkOS variables are absent — the staff
  * surface fails closed (404) in that state.
  */
-function staffAuthStatus(): "workos" | "local" | "unconfigured" {
-  if (staffAuthProvider() !== "workos") return "local";
-  return isWorkosConfigured() ? "workos" : "unconfigured";
+function staffAuthStatus(): {
+  staffAuth: "workos" | "local" | "unconfigured";
+  /** Variable NAMES still unset (never values) — only present when unconfigured. */
+  staffAuthMissing?: string[];
+} {
+  if (staffAuthProvider() !== "workos") return { staffAuth: "local" };
+  const missing = missingWorkosVars();
+  return missing.length === 0
+    ? { staffAuth: "workos" }
+    : { staffAuth: "unconfigured", staffAuthMissing: missing };
 }
 
 /**
@@ -57,7 +64,7 @@ export async function GET() {
       mode: config.mode,
       database,
       model: process.env.ANTHROPIC_API_KEY ? "configured" : "absent",
-      staffAuth: staffAuthStatus(),
+      ...staffAuthStatus(),
       timestamp: new Date().toISOString(),
     },
     {

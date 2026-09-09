@@ -26,7 +26,12 @@ export const WORKOS_ENV_VARS = [
   "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
 ] as const;
 
+/** The AuthKit variables that are unset or blank — names only, never values. */
+export function missingWorkosVars(env: EnvLike = process.env): string[] {
+  return WORKOS_ENV_VARS.filter((name) => !env[name]?.trim());
+}
+
 /** True when every variable the AuthKit SDK needs is present. */
 export function isWorkosConfigured(env: EnvLike = process.env): boolean {
-  return WORKOS_ENV_VARS.every((name) => Boolean(env[name]?.trim()));
+  return missingWorkosVars(env).length === 0;
 }

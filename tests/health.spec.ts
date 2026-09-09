@@ -19,7 +19,9 @@ test("[HEALTH] /api/health reports mode and a reachable database", async ({ requ
 
   // Optional-dependency presence is reported as an enum, never a value.
   expect(["configured", "absent"]).toContain(body.model);
-  // The test server runs the local provider (playwright.config.ts).
+  // The test server runs the local provider (playwright.config.ts), so no
+  // missing-variable list is reported (that appears only when unconfigured).
   expect(body.staffAuth).toBe("local");
+  expect(body.staffAuthMissing).toBeUndefined();
   expect(JSON.stringify(body)).not.toMatch(/sk-ant|sk_test|client_01/);
 });
