@@ -16,4 +16,10 @@ test("[HEALTH] /api/health reports mode and a reachable database", async ({ requ
   expect(body.database).toBe("ok");
   expect(body.mode).toBe("prototype");
   expect(typeof body.timestamp).toBe("string");
+
+  // Optional-dependency presence is reported as an enum, never a value.
+  expect(["configured", "absent"]).toContain(body.model);
+  // The test server runs the local provider (playwright.config.ts).
+  expect(body.staffAuth).toBe("local");
+  expect(JSON.stringify(body)).not.toMatch(/sk-ant|sk_test|client_01/);
 });
