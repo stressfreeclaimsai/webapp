@@ -68,7 +68,11 @@ meets WCAG AA.
 - Design mobile-first at 375px, then verify 768px, 1024px, and 1440px.
 - Never introduce horizontal scrolling.
 - Stack summary labels and values on narrow screens.
-- Keep the primary content column near 700px on desktop.
+- Keep the form and reading column near 700px on desktop. Supporting
+  sections on the landing page (process steps, FAQ) may break out to a wider
+  band of up to ~1040px, each with its own inner measure limit so body copy
+  stays within 65–75 characters. Intake, gap, review, and done screens never
+  widen.
 - Let secondary header status wrap instead of crowding the wordmark.
 
 ## Avoid

@@ -289,6 +289,25 @@ dependency: `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_COOKIE_PASSWORD`,
 runs the local provider; the WorkOS path is verified against the deployed
 runtime, not stubbed.
 
+## Landing page desktop pass (2026-09-09)
+
+B26. **Landing widths are tiered and the page says its reassurance once.**
+Measured at 1440px, the single 700px column left 370px of empty margin per
+side and squeezed the three process cards to ~215px each and the FAQ
+question column to ~270px. The 700px rule stays for the hero, the input
+panel, and every intake/gap/review/done screen (readable measure, one
+primary action); the supporting landing sections break out to a band of up
+to ~1040px using the staff layout's existing centring pattern, with the FAQ
+capped at 920px so answers stay within a 65–75 character measure. The
+reassurance strip, damage-examples band, and closing aside overlapped in
+purpose, so the damage examples now sit inside the input panel beneath the
+textarea (as plain hints, not controls — the button remains the only
+action) and the B23 ownership/service-clarity note is one line under the
+FAQ; the strip and the three steps are unchanged. Copy is unchanged; the
+[AC-1] heading and the [AC-7] affordance and overflow checks continue to
+gate the page. `MASTER.md` and `pages/intake.md` were amended in the same
+commit per the drift controls in `product/architecture.md`.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.

@@ -14,7 +14,8 @@ generic blue/green insurance palette returned by the automated product match.
 ## UI/UX Pro Max rules applied
 
 - Minimal single-column composition with one primary action.
-- Trust-first marketing content follows the intake in this order: reassurance strip, three-step process, damage examples, static FAQ, and a compact ownership/service-clarity note.
+- Trust-first marketing content follows the intake in this order: reassurance strip, three-step process, static FAQ, and a one-line ownership/service-clarity note. Damage examples sit inside the input panel, beneath the textarea, as plain (non-interactive) hints for the person writing.
+- Desktop widths are tiered: the hero and input panel keep the 700px reading column; the process steps and FAQ break out to a wider band (up to ~1040px) using the same centring pattern as the staff layout. Phones see a single column throughout.
 - Keep the intake as the only conversion action; below-input content informs and reassures without adding competing buttons.
 - Paper-like, matte surfaces with restrained depth.
 - Visible or programmatic labels for every form control.

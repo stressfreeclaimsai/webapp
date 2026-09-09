@@ -56,6 +56,12 @@ const FAQS = [
  * steps back so the box is the obvious next move. NOTE: the H1 wording is
  * pinned by the frozen [AC-1] gate; the "We're here to help" copy swap is
  * pending a spec amendment (see open-decisions.md).
+ *
+ * B26 desktop pass: the hero and input keep the 700px reading column; the
+ * supporting sections below break out to a wider band (same pattern as the
+ * staff layout) so the three steps and the FAQ get real room on desktop. The
+ * damage examples moved inside the input panel, where they help while
+ * writing, and the ownership note became one line under the FAQ.
  */
 export default async function Home({
   searchParams,
@@ -104,6 +110,21 @@ export default async function Home({
               placeholder="For example: “My name is Ana Torres. My address is 214 Gulf Shore Blvd, Naples, FL. The hurricane hit us yesterday. I'm insured by Citizens Property. The roof and two windows are damaged.”"
               className="min-h-60 w-full resize-y bg-transparent px-5 py-3 text-[1.06rem] leading-relaxed outline-none placeholder:text-faint sm:min-h-36"
             />
+            {/* Damage examples live where they help — while writing (B26).
+                Plain list items, not controls: the button stays the only action. */}
+            <div className="flex flex-wrap items-center gap-2 px-5 pb-4">
+              <span className="text-sm text-muted">Worth mentioning:</span>
+              <ul className="flex flex-wrap gap-2" aria-label="Damage examples">
+                {DAMAGE_EXAMPLES.map((item) => (
+                  <li
+                    key={item}
+                    className="rounded-pill border border-border bg-surface-2 px-3 py-1 text-sm text-ink"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="flex justify-end border-t border-border bg-surface-2 px-3 py-3 sm:px-4">
               <button
                 type="submit"
@@ -152,92 +173,73 @@ export default async function Home({
         </ul>
       </section>
 
-      <section aria-labelledby="how-it-works" className="mt-20 sm:mt-24">
-        <p className="text-center text-eyebrow font-semibold uppercase text-warn">How it works</p>
-        <h2
-          id="how-it-works"
-          className="mt-3 text-center font-display text-[clamp(2rem,5vw,2.65rem)] font-medium leading-tight tracking-[-0.015em] text-ink-display"
-        >
-          A calmer way to start
-        </h2>
-        <p className="mx-auto mt-4 max-w-[560px] text-center leading-relaxed text-muted">
-          You do not need perfect paperwork or insurance language. Begin with what you know.
-        </p>
+      {/* Supporting sections break out of the 700px reading column to a wider
+          band on desktop (B26) — same centring pattern as the staff layout.
+          On phones the band equals the column, so nothing changes there. */}
+      <div className="relative left-1/2 w-[calc(100vw-2.5rem)] max-w-[1040px] -translate-x-1/2 sm:w-[calc(100vw-3.5rem)]">
+        <section aria-labelledby="how-it-works" className="mt-20 sm:mt-24">
+          <p className="text-center text-eyebrow font-semibold uppercase text-warn">
+            How it works
+          </p>
+          <h2
+            id="how-it-works"
+            className="mt-3 text-center font-display text-[clamp(2rem,5vw,2.65rem)] font-medium leading-tight tracking-[-0.015em] text-ink-display"
+          >
+            A calmer way to start
+          </h2>
+          <p className="mx-auto mt-4 max-w-[560px] text-center leading-relaxed text-muted">
+            You do not need perfect paperwork or insurance language. Begin with what you know.
+          </p>
 
-        <ol className="mt-8 grid gap-4 sm:grid-cols-3">
-          {STEPS.map((step, index) => (
-            <li
-              key={step.title}
-              className="rounded-card border border-border bg-surface-raised p-5 text-left shadow-[0_16px_36px_-30px_rgba(94,42,40,0.35)]"
-            >
-              <span
-                aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-warn"
+          <ol className="mt-8 grid gap-4 sm:grid-cols-3 lg:gap-6">
+            {STEPS.map((step, index) => (
+              <li
+                key={step.title}
+                className="rounded-card border border-border bg-surface-raised p-5 text-left shadow-[0_16px_36px_-30px_rgba(94,42,40,0.35)] lg:p-7"
               >
-                {index + 1}
-              </span>
-              <h3 className="mt-5 text-base font-semibold leading-snug text-ink">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+                <span
+                  aria-hidden="true"
+                  className="flex size-9 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-warn"
+                >
+                  {index + 1}
+                </span>
+                <h3 className="mt-5 text-base font-semibold leading-snug text-ink lg:text-lg">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted lg:text-base">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-      <section
-        aria-labelledby="damage-examples"
-        className="mt-16 rounded-card border border-border bg-surface-deep px-5 py-8 text-center sm:mt-20 sm:px-8 sm:py-10"
-      >
-        <h2
-          id="damage-examples"
-          className="font-display text-[clamp(1.75rem,4.5vw,2.25rem)] font-medium leading-tight text-ink-display"
-        >
-          Start with the damage you can see
-        </h2>
-        <p className="mx-auto mt-3 max-w-[540px] leading-relaxed text-muted">
-          Tell us when and where the loss happened, your insurer if known, and what was damaged. We
-          can guide you through anything missing.
-        </p>
-        <ul className="mt-6 flex flex-wrap justify-center gap-2" aria-label="Damage examples">
-          {DAMAGE_EXAMPLES.map((item) => (
-            <li
-              key={item}
-              className="rounded-pill border border-border-strong bg-surface-raised px-4 py-2 text-sm font-medium text-ink"
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
-      </section>
+        <section aria-labelledby="questions" className="mx-auto mt-20 max-w-[920px] sm:mt-24">
+          <p className="text-center text-eyebrow font-semibold uppercase text-warn">Good to know</p>
+          <h2
+            id="questions"
+            className="mt-3 text-center font-display text-[clamp(2rem,5vw,2.65rem)] font-medium leading-tight tracking-[-0.015em] text-ink-display"
+          >
+            A few common questions
+          </h2>
 
-      <section aria-labelledby="questions" className="mt-20 sm:mt-24">
-        <p className="text-center text-eyebrow font-semibold uppercase text-warn">Good to know</p>
-        <h2
-          id="questions"
-          className="mt-3 text-center font-display text-[clamp(2rem,5vw,2.65rem)] font-medium leading-tight tracking-[-0.015em] text-ink-display"
-        >
-          A few common questions
-        </h2>
+          <dl className="mt-8 divide-y divide-border border-y border-border text-left">
+            {FAQS.map((item) => (
+              <div
+                key={item.question}
+                className="py-5 sm:grid sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:gap-8 lg:gap-12"
+              >
+                <dt className="font-semibold leading-relaxed text-ink">{item.question}</dt>
+                <dd className="mt-2 leading-relaxed text-muted sm:mt-0">{item.answer}</dd>
+              </div>
+            ))}
+          </dl>
 
-        <dl className="mt-8 divide-y divide-border border-y border-border text-left">
-          {FAQS.map((item) => (
-            <div
-              key={item.question}
-              className="py-5 sm:grid sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:gap-8"
-            >
-              <dt className="font-semibold leading-relaxed text-ink">{item.question}</dt>
-              <dd className="mt-2 leading-relaxed text-muted sm:mt-0">{item.answer}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <aside className="mt-16 rounded-card border border-border bg-surface-2 px-5 py-6 text-center sm:mt-20 sm:px-8">
-        <h2 className="text-base font-semibold text-ink">Built around a human follow-up</h2>
-        <p className="mx-auto mt-2 max-w-[560px] text-sm leading-relaxed text-muted">
-          StressFreeClaim.ai is being developed for Nexus Development to simplify the first step
-          after storm damage. This intake does not submit directly to an insurer.
-        </p>
-      </aside>
+          {/* Ownership / service-clarity note (B23), now one line (B26). */}
+          <p className="mt-8 text-center text-sm leading-relaxed text-muted">
+            StressFreeClaim.ai is being developed for Nexus Development. This intake does not
+            submit directly to an insurer.
+          </p>
+        </section>
+      </div>
     </div>
   );
 }
