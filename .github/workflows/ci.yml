@@ -1,0 +1,111 @@
+# Continuous integration for the production-foundation track
+# (product/launch-plan.md, Workstream 1: "CI checks for type safety, linting,
+# unit/integration tests, and dependency review").
+#
+# Three jobs, all required before anything merges to main:
+#   checks      — typecheck, lint, production build (what Vercel will run)
+#   acceptance  — the /verify harness against a throwaway PostgreSQL service
+#   dependency-review — new dependencies on a pull request are reviewed for
+#                       known vulnerabilities and disallowed licences
+#
+# The database is a container on localhost:54329 named `stressfreeclaim`,
+# mirroring docker-compose.yml exactly so the destructive seed guard in
+# scripts/env.ts accepts it. No managed credentials exist in this file.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  # Prototype-safe runtime for every CI job (PRODUCT.md release gates).
+  APP_MODE: prototype
+  PRODUCTION_FOUNDATION_READY: "false"
+  STAFF_AUTH_PROVIDER: local
+
+jobs:
+  checks:
+    name: Typecheck, lint, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # `next build` never opens a connection, but the Prisma client requires
+      # the variables to be present. Points at nothing real.
+      DATABASE_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
+      DIRECT_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  acceptance:
+    name: Acceptance tests (/verify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: stressfreeclaim
+          POSTGRES_USER: stressfreeclaim
+          POSTGRES_PASSWORD: stressfreeclaim
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U stressfreeclaim -d stressfreeclaim"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
+      DIRECT_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
+      TEST_DATABASE_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Run the /verify harness
+        run: npm run verify
+      - name: Upload test results and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-results
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

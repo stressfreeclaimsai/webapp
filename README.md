@@ -35,6 +35,15 @@ npm run db:setup                 # start PostgreSQL, migrate, seed synthetic dat
 npm run dev                      # http://localhost:3000
 ```
 
+## Continuous integration
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`:
+typecheck, lint, and production build; the `/verify` harness against a
+throwaway PostgreSQL service on the same `localhost:54329/stressfreeclaim`
+address the local Docker database uses; and, on pull requests, a dependency
+review that fails on high-severity advisories. Test results and screenshots
+are attached to the run as the `verify-results` artifact.
+
 ## Commands
 
 | Command             | What it does                                                        |

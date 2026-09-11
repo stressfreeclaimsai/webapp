@@ -28,6 +28,9 @@ credentials, email domains, monitoring projects, and URLs.
 ## Foundation status
 
 - Local PostgreSQL 16 is reproducible through `docker-compose.yml`.
+- GitHub Actions runs typecheck, lint, build, the `/verify` harness on a
+  PostgreSQL service, and pull-request dependency review
+  (`.github/workflows/ci.yml`).
 - The initial Prisma migration contains the complete private-pilot data model.
 - Development and acceptance tests use separate PostgreSQL schemas.
 - The original prototype branch/deployment remains unchanged.

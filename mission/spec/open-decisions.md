@@ -342,6 +342,32 @@ the code contract. Design page rule `pages/staff-operations.md` was amended
 in the same commit: the "no mutation controls" exclusion is lifted for these
 three controls and only these; bulk actions and export remain excluded.
 
+## Continuous integration (2026-09-11)
+
+B28. **CI is GitHub Actions running the same gates a developer runs
+locally, against a PostgreSQL service that impersonates the Docker
+database.** Workstream 1 of `product/launch-plan.md` asked for type safety,
+linting, tests, and dependency review in CI. Three jobs: `checks`
+(typecheck, lint, `next build` — the build step is what Vercel runs, so a
+build break is caught before deploy), `acceptance` (`npm run verify`, the
+full Playwright suite with the acceptance-criteria table), and
+`dependency-review` (`actions/dependency-review-action`, pull requests
+only, fails on high severity; the repository is public so the action is
+available without Advanced Security). The database service publishes
+`54329:5432` with the database and role named `stressfreeclaim` so the
+destructive-seed guard in `scripts/env.ts` accepts it unchanged — CI proves
+the guard rather than bypassing it, and no managed credential appears in
+the workflow. Every job runs with `APP_MODE=prototype`,
+`PRODUCTION_FOUNDATION_READY=false`, and `STAFF_AUTH_PROVIDER=local`, the
+same shape as the test suite. CI runs Node 22 LTS rather than the 24.2.0
+used locally: the Playwright/Node 24.2.0 sync-ESM bug recorded under Known
+issues does not affect 22, and 22 is the current Vercel default; the
+test-file import restriction stays in force until local Node moves. Push
+runs are limited to `main`; pull requests run everything; a newer commit on
+the same ref cancels the in-flight run. `npm audit` is deliberately not a
+blocking step: it reports advisories in transitive dev tooling below the
+threshold and would fail runs for changes nobody made in that commit.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.
