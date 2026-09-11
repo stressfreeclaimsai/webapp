@@ -35,8 +35,24 @@ blue/green insurance dashboard.
 - Empty and filtered-empty states explain how to recover.
 - The local staff identity must never be available in pilot or production mode.
 
+## Mutation controls (B27)
+
+- The claim detail page carries exactly three write controls: change status,
+  change owner, and add an internal note. Nothing else mutates from the UI.
+- Controls live inside the panel that shows the fact they change (status and
+  owner under Ownership, the note form under Internal notes), below the
+  read-only facts and separated by a border — never floating toolbars.
+- Each control is a plain form with a labelled select or textarea and one
+  submit button; status uses the filled terracotta button, owner the quiet
+  outlined one. The submit disables itself while the action is in flight.
+- The outcome of a write is a single message in a `role="status"` region
+  under the page header; problems name the next step and never dead-end.
+- A control a role lacks is not rendered; the server refuses it regardless.
+- History rows read as sentences built from identifiers ("Status changed to
+  Contacted", "Owner changed to <name>") — never from claim facts.
+
 ## Deliberate exclusions
 
-- No charts, bulk actions, export, mutation controls, or decorative animation.
+- No charts, bulk actions, export, or decorative animation.
 - No provider-specific authentication UI.
 - No generic security-blue palette, sidebar, or icon-heavy navigation.

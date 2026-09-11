@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/staff/status-badge";
-import { CLAIM_STATUSES } from "@/lib/production-domain";
+import { CLAIM_STATUS_LABELS, CLAIM_STATUSES } from "@/lib/production-domain";
 import { listClaimsForStaff } from "@/lib/staff-claims";
 import { requireStaff } from "@/lib/staff-auth";
 
@@ -21,15 +21,6 @@ const dateTime = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Denver",
   timeZoneName: "short",
 });
-
-const STATUS_LABELS: Record<(typeof CLAIM_STATUSES)[number], string> = {
-  new: "New",
-  reviewing: "Reviewing",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  closed: "Closed",
-  duplicate: "Duplicate",
-};
 
 export default async function ClaimsQueue({
   searchParams,
@@ -102,7 +93,7 @@ export default async function ClaimsQueue({
             <option value="">All statuses</option>
             {CLAIM_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {STATUS_LABELS[status]}
+                {CLAIM_STATUS_LABELS[status]}
               </option>
             ))}
           </select>

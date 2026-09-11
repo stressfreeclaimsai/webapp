@@ -40,8 +40,11 @@ credentials, email domains, monitoring projects, and URLs.
   status are enforced from `StaffUser`, never from the provider.
 - The production database is managed PostgreSQL on Neon (US-East-2), migrated
   from the checked-in Prisma migrations; `/api/health` probes it.
-- Staff mutations, notifications, and the remaining provider integrations
-  (email, monitoring) remain gated follow-on work.
+- Staff mutations — status, owner, and internal notes — are live on the
+  claim detail page behind the B27 capability matrix; each write is one
+  transaction with its audit event.
+- Notifications and the remaining provider integrations (email, monitoring)
+  remain gated follow-on work.
 
 ## Runtime modes
 
@@ -82,8 +85,8 @@ screens. Today those checks run locally; they are not yet enforced by GitHub.
 4. Add staff authentication and authorization. **Adapter complete (WorkOS
    AuthKit, B25); awaiting dashboard configuration and first invited
    sign-in.**
-5. Add queue, detail, assignment, notes, and audit history. **Queue and detail
-   reads complete locally; staff mutations pending.**
+5. Add queue, detail, assignment, notes, and audit history. **Complete
+   locally (B27); the standard/admin matrix awaits owner confirmation.**
 6. Add idempotent notifications and delivery visibility.
 7. Pass security, restore, accessibility, and operations gates.
 8. Enable pilot mode for counsel-approved states only.

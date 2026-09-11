@@ -1,13 +1,4 @@
-import { CLAIM_STATUSES } from "@/lib/production-domain";
-
-const STATUS_LABELS: Record<(typeof CLAIM_STATUSES)[number], string> = {
-  new: "New",
-  reviewing: "Reviewing",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  closed: "Closed",
-  duplicate: "Duplicate",
-};
+import { CLAIM_STATUS_LABELS, CLAIM_STATUSES } from "@/lib/production-domain";
 
 const STATUS_STYLES: Record<(typeof CLAIM_STATUSES)[number], string> = {
   new: "border-accent/30 bg-accent-soft text-warn",
@@ -25,7 +16,7 @@ export function StatusBadge({ status }: { status: string }) {
     <span
       className={`inline-flex min-h-7 items-center rounded-pill border px-2.5 py-1 text-xs font-semibold ${key ? STATUS_STYLES[key] : "border-border bg-surface-2 text-muted"}`}
     >
-      {key ? STATUS_LABELS[key] : status}
+      {key ? CLAIM_STATUS_LABELS[key] : status}
     </span>
   );
 }

@@ -45,6 +45,17 @@ async function main() {
     },
   });
 
+  // A second, standard-access reviewer so the owner control has a real
+  // target and the two access levels (B24/B27) are both visible locally.
+  await prisma.staffUser.create({
+    data: {
+      externalSubject: "dev:staff:reviewer",
+      email: "reviewer.demo@stressfreeclaim.example",
+      displayName: "Priya Natarajan",
+      role: "standard",
+    },
+  });
+
   const claim = await prisma.claim.create({
     data: {
       referenceCode: "SFC-DEMO01",
@@ -181,7 +192,7 @@ async function main() {
   ]);
 
   console.log(
-    `✓ Seeded three synthetic claims, one staff user, two assignments, notes, audit events, and a notification preview.`,
+    `✓ Seeded three synthetic claims, two staff users, two assignments, notes, audit events, and a notification preview.`,
   );
 }
 

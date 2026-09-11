@@ -85,11 +85,13 @@ only that resolver and session plumbing—not claim, assignment, note, audit, or
 page contracts.
 
 The customer-approved access vocabulary has two levels: `standard` and
-`admin`. New staff records default to `standard`. The exact capability matrix
-is intentionally deferred until the first hires and operating workflow are
-clear; no current page or repository may infer extra standard-user access from
-the role label alone. `admin` is reserved for approved owner/administrative
-functions, including future staff access management.
+`admin`. New staff records default to `standard`. The working capability
+matrix (decision B27) is a single function, `staffCan()` in
+`lib/production-domain.ts`: `standard` may change status, change owner, and
+add notes; export and staff management are `admin` only. It is a default
+awaiting owner confirmation, and no page or repository may infer access from
+the role label outside that function. `admin` remains reserved for approved
+owner/administrative functions, including future staff access management.
 
 ## Local isolation
 

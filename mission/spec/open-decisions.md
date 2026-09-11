@@ -308,6 +308,40 @@ FAQ; the strip and the three steps are unchanged. Copy is unchanged; the
 gate the page. `MASTER.md` and `pages/intake.md` were amended in the same
 commit per the drift controls in `product/architecture.md`.
 
+## Staff mutations (2026-09-10)
+
+B27. **Staff can change status, owner, and notes from the claim detail page;
+the working capability matrix lets `standard` do all three and reserves
+export and staff management for `admin`.** `product/launch-plan.md` requires
+the standard/admin split to be approved before mutations or exports are
+enabled, and says the build may begin with defaults; this is that default,
+recorded so the owner can confirm or narrow it. The matrix lives in one
+place (`staffCan()` in `lib/production-domain.ts`); pages hide a control the
+role lacks and the action refuses it server-side regardless. Writes go
+through `lib/staff-claims.ts` and each is one transaction pairing the change
+with its `AuditEvent`, so history cannot drift from the record. Rules:
+any listed status may follow any other (the launch plan names the workflow,
+not a transition graph — a graph would be a business decision); `closed` and
+`duplicate` stamp `closedAt`, any other status clears it; re-submitting the
+current status or owner is a refused no-op with a plain message, not a
+second event. Owner changes close the open `ClaimAssignment` and open a new
+one in the same transaction (the one-open-per-claim index stays the
+guarantee); clearing the owner writes `claim.unassigned`. Notes are trimmed,
+CRLF-normalised, 1–4000 characters, and audited as `claim.note_added` with
+the note id and length only — the body never enters audit metadata, and
+assignment events carry staff ids, not names. Actions re-resolve the
+principal from `requireStaff()` and never trust the form for identity or
+role; they redirect back to the claim with an `?outcome=` flag so a refresh
+cannot repeat a write (never-trap: every problem flag renders a next step).
+The seed now includes a second, `standard` staff member so the owner control
+has a real target locally. New tests `[STAFF-6..8]` cover status, owner, and
+note paths including the empty-note server guard and phone-width overflow.
+Not covered by the browser suite: role denial, because the suite runs a
+single seeded admin principal — the `not_allowed` path is exercised only by
+the code contract. Design page rule `pages/staff-operations.md` was amended
+in the same commit: the "no mutation controls" exclusion is lifted for these
+three controls and only these; bulk actions and export remain excluded.
+
 ## Scaffolding decisions (archetype setup, 2026-06-16)
 
 > Preserved from scaffolding — stack/tooling decisions the builder still relies on.
