@@ -44,8 +44,8 @@ jobs:
       DATABASE_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
       DIRECT_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -77,8 +77,8 @@ jobs:
       DIRECT_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=public
       TEST_DATABASE_URL: postgresql://stressfreeclaim:stressfreeclaim@localhost:54329/stressfreeclaim?schema=test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -89,7 +89,7 @@ jobs:
         run: npm run verify
       - name: Upload test results and screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: verify-results
           path: |
@@ -104,8 +104,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
